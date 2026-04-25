@@ -11,7 +11,7 @@ async function main() {
     // bu user ID'yi buraya yazıp script'i tekrar çalıştırabilirsin.
     // Şimdilik placeholder bir user oluşturuyoruz.
 
-    const demoUserId = "demo-user-placeholder";
+    const demoUserId = "user_3Crw1WqocMnclNM4emJAvbZIl3Y";
 
     // Önce demo user'ı upsert et
     const user = await prisma.user.upsert({
@@ -19,7 +19,7 @@ async function main() {
         update: {},
         create: {
             id: demoUserId,
-            email: "demo@taskflow.app",
+            email: "careeros.iletisindeneme@gmail.com",
             name: "Demo User",
         },
     });
