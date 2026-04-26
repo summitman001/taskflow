@@ -1,5 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { UserButton } from "@clerk/nextjs";
+import { BoardView } from "@/components/board/BoardView";
 
 export default async function BoardPage({
     params,
@@ -9,21 +11,25 @@ export default async function BoardPage({
     const { boardId } = await params;
 
     return (
-        <div className="min-h-screen bg-slate-50 p-8">
-            <Link
-                href="/boards"
-                className="mb-6 inline-flex items-center text-sm text-slate-600 hover:text-slate-900"
-            >
-                <ArrowLeft className="mr-1 h-4 w-4" />
-                Back to boards
-            </Link>
-            <div className="rounded-lg border border-slate-200 bg-white p-8 text-center">
-                <h1 className="text-2xl font-semibold text-slate-900">Board view</h1>
-                <p className="mt-2 text-sm text-slate-500">
-                    Board ID: <code className="rounded bg-slate-100 px-2 py-1">{boardId}</code>
-                </p>
-                <p className="mt-4 text-slate-600">Kanban view coming in Step 6 ✨</p>
-            </div>
+        <div className="flex h-screen flex-col bg-slate-50">
+            <header className="border-b bg-white">
+                <div className="flex items-center justify-between px-6 py-3">
+                    <div className="flex items-center gap-4">
+                        <Link
+                            href="/boards"
+                            className="flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900"
+                        >
+                            <ArrowLeft className="h-4 w-4" />
+                            Boards
+                        </Link>
+                    </div>
+                    <UserButton />
+                </div>
+            </header>
+
+            <main className="flex-1 overflow-hidden">
+                <BoardView boardId={boardId} />
+            </main>
         </div>
     );
 }
