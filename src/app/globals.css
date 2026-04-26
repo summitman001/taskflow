@@ -128,3 +128,14 @@
     @apply font-sans;
   }
 }
+
+/* Mobil drag esnasında scroll'u engelle */
+body.dragging-active {
+  overflow: hidden;
+  touch-action: none;
+}
+
+/* Drag handle'larda native touch behavior'ı kapat */
+[data-dnd-handle] {
+  touch-action: none;
+}

@@ -7,6 +7,7 @@ import { useBoardsQuery, useDeleteBoard } from "@/hooks/useBoards";
 import { Button } from "@/components/ui/button";
 import { CreateBoardDialog } from "./CreateBoardDialog";
 import { DeleteBoardDialog } from "./DeleteBoardDialog";
+import { getColorFromId } from "@/lib/utils";
 
 export function BoardsList() {
     const { data: boards, isLoading, isError, error } = useBoardsQuery();
@@ -83,39 +84,40 @@ export function BoardsList() {
 }
 
 function BoardCard({
-    board,
-    onDeleteClick,
+  board,
+  onDeleteClick,
 }: {
-    board: { id: string; title: string; _count: { columns: number } };
-    onDeleteClick: () => void;
+  board: { id: string; title: string; _count: { columns: number } };
+  onDeleteClick: () => void;
 }) {
-    return (
-        <div className="group relative rounded-lg border border-slate-200 bg-white p-5 transition hover:border-slate-300 hover:shadow-sm">
-            <Link href={`/boards/${board.id}`} className="block">
-                <div className="mb-3 flex h-10 w-10 items-center justify-center rounded-md bg-slate-100">
-                    <LayoutGrid className="h-5 w-5 text-slate-600" />
-                </div>
-                <h3 className="font-semibold text-slate-900">{board.title}</h3>
-                <p className="mt-1 text-sm text-slate-500">
-                    {board._count.columns} column{board._count.columns === 1 ? "" : "s"}
-                </p>
-            </Link>
+  const colorClass = getColorFromId(board.id);
 
-            {/* Delete button — sadece hover'da görünür */}
-            <button
-                type="button"
-                onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onDeleteClick();
-                }}
-                className="absolute right-3 top-3 rounded-md p-1.5 text-slate-400 opacity-0 transition hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
-                aria-label={`Delete board ${board.title}`}
-            >
-                <Trash2 className="h-4 w-4" />
-            </button>
-        </div>
-    );
+  return (
+    <div className="group relative overflow-hidden rounded-lg border border-slate-200 bg-white transition hover:border-slate-300 hover:shadow-sm">
+      {/* Renk şeridi */}
+      <div className={`h-2 w-full ${colorClass}`} />
+
+      <Link href={`/boards/${board.id}`} className="block p-5">
+        <h3 className="font-semibold text-slate-900">{board.title}</h3>
+        <p className="mt-1 text-sm text-slate-500">
+          {board._count.columns} column{board._count.columns === 1 ? "" : "s"}
+        </p>
+      </Link>
+
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onDeleteClick();
+        }}
+        className="absolute right-3 top-5 rounded-md p-1.5 text-slate-400 opacity-0 transition hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
+        aria-label={`Delete board ${board.title}`}
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
+    </div>
+  );
 }
 
 function EmptyState({ onCreate }: { onCreate: () => void }) {

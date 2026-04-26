@@ -1,13 +1,14 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useEffect } from "react";
 import {
     DndContext,
     DragEndEvent,
     DragOverEvent,
     DragOverlay,
     DragStartEvent,
-    PointerSensor,
+    MouseSensor,
+    TouchSensor,
     KeyboardSensor,
     useSensor,
     useSensors,
@@ -71,13 +72,55 @@ function BoardContent({
     const dragStartColumnIdRef = useRef<string | null>(null);
 
     const sensors = useSensors(
-        useSensor(PointerSensor, {
+        useSensor(MouseSensor, {
+            // Mouse: 5px hareket sonrası drag başlar (click vs drag ayrımı)
             activationConstraint: { distance: 5 },
+        }),
+        useSensor(TouchSensor, {
+            // Mobil: 200ms uzun basma sonrası drag başlar
+            // Tolerance: 5px parmak titremesini tolere et
+            activationConstraint: { delay: 200, tolerance: 5 },
         }),
         useSensor(KeyboardSensor, {
             coordinateGetter: sortableKeyboardCoordinates,
         }),
     );
+
+    useEffect(() => {
+        if (drag.type !== null) {
+            document.body.classList.add("dragging-active");
+        } else {
+            document.body.classList.remove("dragging-active");
+        }
+        return () => document.body.classList.remove("dragging-active");
+    }, [drag.type]);
+
+    // Klavye kısayolu: N → ilk column'a hızlı kart ekle
+    useEffect(() => {
+        const handleKeyDown = (e: KeyboardEvent) => {
+            // Input/textarea aktifken kısayolu çalıştırma
+            const target = e.target as HTMLElement;
+            if (
+                target.tagName === "INPUT" ||
+                target.tagName === "TEXTAREA" ||
+                target.isContentEditable
+            ) {
+                return;
+            }
+
+            // 'n' ile yeni kart - ilk column'da focus için event dispatch
+            if (e.key === "n" || e.key === "N") {
+                e.preventDefault();
+                const firstAddCardButton = document.querySelector<HTMLButtonElement>(
+                    "[data-add-card-trigger]",
+                );
+                firstAddCardButton?.click();
+            }
+        };
+
+        window.addEventListener("keydown", handleKeyDown);
+        return () => window.removeEventListener("keydown", handleKeyDown);
+    }, []);
 
     const handleDragStart = (e: DragStartEvent) => {
         const data = e.active.data.current as DragData | undefined;
@@ -238,10 +281,11 @@ function BoardContent({
         <div className="flex h-full flex-col">
             <div className="border-b bg-white px-6 py-4">
                 <h1 className="text-xl font-semibold text-slate-900">{board.title}</h1>
-                <p className="mt-0.5 text-sm text-slate-500">
+                <p className="mt-0.5 text-sm tabular-nums text-slate-500">
                     {board.columns.length} column
                     {board.columns.length === 1 ? "" : "s"} ·{" "}
-                    {board.columns.reduce((sum, c) => sum + c.cards.length, 0)} cards
+                    {board.columns.reduce((sum, c) => sum + c.cards.length, 0)} card
+                    {board.columns.reduce((sum, c) => sum + c.cards.length, 0) === 1 ? "" : "s"}
                 </p>
             </div>
 
@@ -292,14 +336,31 @@ function previewCardMove(
 }
 
 function BoardSkeleton() {
-    return (
-        <div className="flex h-full gap-4 overflow-hidden p-6">
-            {Array.from({ length: 3 }).map((_, i) => (
+  return (
+    <div className="flex h-full flex-col">
+      <div className="border-b bg-white px-6 py-4">
+        <div className="h-6 w-48 animate-pulse rounded bg-slate-200" />
+        <div className="mt-2 h-4 w-32 animate-pulse rounded bg-slate-200" />
+      </div>
+      <div className="flex flex-1 gap-4 overflow-hidden p-6">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div
+            key={i}
+            className="flex h-full w-72 flex-shrink-0 flex-col rounded-lg bg-slate-100 p-3"
+          >
+            <div className="mb-3 h-5 w-24 animate-pulse rounded bg-slate-200" />
+            <div className="space-y-2">
+              {Array.from({ length: 3 + i }).map((_, j) => (
                 <div
-                    key={i}
-                    className="h-96 w-72 flex-shrink-0 animate-pulse rounded-lg bg-slate-200"
+                  key={j}
+                  className="h-16 animate-pulse rounded-md bg-white"
+                  style={{ animationDelay: `${j * 100}ms` }}
                 />
-            ))}
-        </div>
-    );
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }

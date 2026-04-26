@@ -20,7 +20,16 @@ export default function RootLayout({
         <body className="antialiased">
           <QueryProvider>
             {children}
-            <Toaster richColors position="top-right" />
+            <Toaster
+              richColors
+              position="top-right"
+              className="md:!top-4"
+              toastOptions={{
+                classNames: {
+                  toast: "!font-sans",
+                },
+              }}
+            />
           </QueryProvider>
         </body>
       </html>

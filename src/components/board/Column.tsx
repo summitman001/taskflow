@@ -132,6 +132,7 @@ export function Column({ column, boardId }: Props) {
                         </DropdownMenuItem>
                         <DropdownMenuItem
                             onClick={handleDelete}
+                            disabled={deleteColumn.isPending}
                             className="text-red-600 focus:text-red-600"
                         >
                             <Trash2 className="mr-2 h-4 w-4" />
@@ -141,12 +142,18 @@ export function Column({ column, boardId }: Props) {
                 </DropdownMenu>
             </div>
 
-            {/* Cards list — kendi SortableContext'i */}
+            {/* Cards list */}
             <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
                 <div className="flex-1 space-y-2 overflow-y-auto px-2 pb-2">
-                    {column.cards.map((card) => (
-                        <Card key={card.id} card={card} columnId={column.id} />
-                    ))}
+                    {column.cards.length === 0 ? (
+                        <div className="flex h-20 items-center justify-center rounded-md border-2 border-dashed border-slate-300 text-xs text-slate-400">
+                            Drop cards here
+                        </div>
+                    ) : (
+                        column.cards.map((card) => (
+                            <Card key={card.id} card={card} columnId={column.id} />
+                        ))
+                    )}
                 </div>
             </SortableContext>
 

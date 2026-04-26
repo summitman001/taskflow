@@ -53,6 +53,7 @@ export function AddCardButton({ boardId, columnId, existingCards }: Props) {
             <button
                 type="button"
                 onClick={() => setIsAdding(true)}
+                data-add-card-trigger
                 className="flex w-full items-center gap-1 rounded-md px-2 py-2 text-sm text-slate-600 transition hover:bg-slate-200"
             >
                 <Plus className="h-4 w-4" />
