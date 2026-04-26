@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef } from "react";
 import {
     DndContext,
     DragEndEvent,
@@ -16,6 +16,8 @@ import { sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { useQueryClient } from "@tanstack/react-query";
 import { useBoardQuery, boardKey } from "@/hooks/useBoard";
 import { useUIStore } from "@/stores/useUIStore";
+import { useMoveCard, useMoveColumn } from "@/hooks/useDnd";
+import { getPositionForIndex } from "@/lib/positioning";
 import { ColumnList } from "./ColumnList";
 import { CardEditDialog } from "./CardEditDialog";
 import { CardOverlay } from "./CardOverlay";
@@ -61,10 +63,15 @@ function BoardContent({
     const setDrag = useUIStore((s) => s.setDrag);
     const drag = useUIStore((s) => s.drag);
 
-    // Sensor'ları kur
+    const moveCard = useMoveCard(boardId);
+    const moveColumn = useMoveColumn(boardId);
+
+    // Drag başlarken kartın orijinal lokasyonunu snapshot'la.
+    // handleDragOver cache'i mutate ettiği için, end'de orijinal yer kaybolur.
+    const dragStartColumnIdRef = useRef<string | null>(null);
+
     const sensors = useSensors(
         useSensor(PointerSensor, {
-            // Karta tıklayınca direkt sürükleme başlamasın, 5px hareket gerekir
             activationConstraint: { distance: 5 },
         }),
         useSensor(KeyboardSensor, {
@@ -75,9 +82,21 @@ function BoardContent({
     const handleDragStart = (e: DragStartEvent) => {
         const data = e.active.data.current as DragData | undefined;
         if (!data) return;
+
         setDrag({ type: data.type, id: e.active.id as string });
+
+        // Kartın orijinal column'ını snapshot'la (drag-over cache'i bozmadan önce)
+        if (data.type === "card") {
+            dragStartColumnIdRef.current = data.columnId;
+        } else {
+            dragStartColumnIdRef.current = null;
+        }
     };
 
+    /**
+     * Sürükleme sırasında kartı farklı column'a girince geçici cache update.
+     * Bu sadece "preview" — final position handleDragEnd'de hesaplanacak.
+     */
     const handleDragOver = (e: DragOverEvent) => {
         const { active, over } = e;
         if (!over) return;
@@ -85,30 +104,21 @@ function BoardContent({
         const activeData = active.data.current as DragData | undefined;
         const overData = over.data.current as DragData | undefined;
         if (!activeData || !overData) return;
-
-        // Sadece kart sürükleme için: kart farklı column'a girince cache'i güncelle
         if (activeData.type !== "card") return;
 
-        // Kart bir column'un üstünde mi yoksa başka bir kartın üstünde mi?
         const overColumnId =
             overData.type === "column"
                 ? overData.column.id
                 : overData.type === "card"
                     ? overData.columnId
                     : null;
-
         if (!overColumnId) return;
         if (activeData.columnId === overColumnId) return;
 
-        // Kartı yeni column'a taşı (sadece local cache, henüz API'ye değil)
+        // Kartı yeni column'a "preview" olarak taşı
         qc.setQueryData<BoardWithColumns>(boardKey(boardId), (old) => {
             if (!old) return old;
-            return moveCardBetweenColumns(
-                old,
-                active.id as string,
-                activeData.columnId,
-                overColumnId,
-            );
+            return previewCardMove(old, active.id as string, overColumnId);
         });
     };
 
@@ -117,28 +127,37 @@ function BoardContent({
         setDrag({ type: null, id: null });
 
         if (!over) return;
-        if (active.id === over.id) return;
 
         const activeData = active.data.current as DragData | undefined;
         const overData = over.data.current as DragData | undefined;
         if (!activeData || !overData) return;
 
-        // Column reorder
+        const currentBoard = qc.getQueryData<BoardWithColumns>(boardKey(boardId));
+        if (!currentBoard) return;
+
+        /* ----- Column reorder ----- */
         if (activeData.type === "column" && overData.type === "column") {
-            qc.setQueryData<BoardWithColumns>(boardKey(boardId), (old) => {
-                if (!old) return old;
-                const oldIdx = old.columns.findIndex((c) => c.id === active.id);
-                const newIdx = old.columns.findIndex((c) => c.id === over.id);
-                if (oldIdx === -1 || newIdx === -1) return old;
-                const newColumns = [...old.columns];
-                const [moved] = newColumns.splice(oldIdx, 1);
-                newColumns.splice(newIdx, 0, moved);
-                return { ...old, columns: newColumns };
+            if (active.id === over.id) return;
+
+            const oldIdx = currentBoard.columns.findIndex((c) => c.id === active.id);
+            const newIdx = currentBoard.columns.findIndex((c) => c.id === over.id);
+            if (oldIdx === -1 || newIdx === -1 || oldIdx === newIdx) return;
+
+            const newPosition = getPositionForIndex(
+                currentBoard.columns,
+                newIdx,
+                active.id as string,
+            );
+
+            moveColumn.mutate({
+                columnId: active.id as string,
+                newPosition,
+                newIndex: newIdx,
             });
             return;
         }
 
-        // Card reorder (aynı column içinde veya çapraz)
+        /* ----- Card reorder ----- */
         if (activeData.type === "card") {
             const overColumnId =
                 overData.type === "column"
@@ -148,23 +167,64 @@ function BoardContent({
                         : null;
             if (!overColumnId) return;
 
-            qc.setQueryData<BoardWithColumns>(boardKey(boardId), (old) => {
-                if (!old) return old;
-                return reorderCardInColumn(
-                    old,
-                    active.id as string,
-                    over.id as string,
-                    overColumnId,
-                );
+            const targetCol = currentBoard.columns.find((c) => c.id === overColumnId);
+            if (!targetCol) return;
+
+            const cardCurrentIdx = targetCol.cards.findIndex(
+                (c) => c.id === active.id,
+            );
+
+            let targetIndex: number;
+
+            if (overData.type === "column") {
+                targetIndex =
+                    cardCurrentIdx >= 0
+                        ? targetCol.cards.length - 1
+                        : targetCol.cards.length;
+            } else if (active.id === over.id) {
+                targetIndex =
+                    cardCurrentIdx >= 0 ? cardCurrentIdx : targetCol.cards.length;
+            } else {
+                targetIndex = targetCol.cards.findIndex((c) => c.id === over.id);
+                if (targetIndex === -1) return;
+            }
+
+            // Drag start'taki orijinal column'ı kullan (cache mutate edilmiş olabilir)
+            const originalColumnId = dragStartColumnIdRef.current;
+            dragStartColumnIdRef.current = null; // temizle
+
+            // No-op: kart aynı column'da aynı indekse geri bırakıldıysa
+            const isSameColumn = originalColumnId === overColumnId;
+
+            if (isSameColumn && cardCurrentIdx === targetIndex) {
+                const originalCard = currentBoard.columns
+                    .flatMap((c) => c.cards)
+                    .find((c) => c.id === active.id);
+
+                if (!originalCard) return;
+            }
+
+            const newPosition = getPositionForIndex(
+                targetCol.cards,
+                targetIndex,
+                active.id as string,
+            );
+
+            moveCard.mutate({
+                cardId: active.id as string,
+                toColumnId: overColumnId,
+                newPosition,
+                newIndex: targetIndex,
             });
         }
     };
 
     const handleDragCancel = () => {
         setDrag({ type: null, id: null });
+        // Preview cache update'i geri al
+        qc.invalidateQueries({ queryKey: boardKey(boardId) });
     };
 
-    // Drag overlay için aktif item'ı bul
     const activeCard =
         drag.type === "card"
             ? board.columns.flatMap((c) => c.cards).find((c) => c.id === drag.id)
@@ -205,55 +265,29 @@ function BoardContent({
     );
 }
 
-/* ----- Cache update helpers (saf fonksiyonlar) ----- */
+/* ----- Preview transform (handleDragOver için) ----- */
 
-function moveCardBetweenColumns(
+function previewCardMove(
     board: BoardWithColumns,
     cardId: string,
-    fromColumnId: string,
     toColumnId: string,
 ): BoardWithColumns {
-    const columns = board.columns.map((col) => {
-        if (col.id === fromColumnId) {
-            return { ...col, cards: col.cards.filter((c) => c.id !== cardId) };
-        }
-        if (col.id === toColumnId) {
-            const card = board.columns
-                .flatMap((c) => c.cards)
-                .find((c) => c.id === cardId);
-            if (!card) return col;
-            // Geçici: en sona ekle. handleDragEnd'de doğru yere koyulacak.
-            return { ...col, cards: [...col.cards, { ...card, columnId: toColumnId }] };
-        }
-        return col;
+    let movedCard: BoardWithColumns["columns"][0]["cards"][0] | undefined;
+    const columnsWithoutCard = board.columns.map((col) => {
+        const found = col.cards.find((c) => c.id === cardId);
+        if (found) movedCard = found;
+        return { ...col, cards: col.cards.filter((c) => c.id !== cardId) };
     });
-    return { ...board, columns };
-}
+    if (!movedCard) return board;
 
-function reorderCardInColumn(
-    board: BoardWithColumns,
-    cardId: string,
-    overId: string,
-    overColumnId: string,
-): BoardWithColumns {
-    const targetCol = board.columns.find((c) => c.id === overColumnId);
-    if (!targetCol) return board;
+    const columns = columnsWithoutCard.map((col) => {
+        if (col.id !== toColumnId) return col;
+        return {
+            ...col,
+            cards: [...col.cards, { ...movedCard!, columnId: toColumnId }],
+        };
+    });
 
-    const cardIdx = targetCol.cards.findIndex((c) => c.id === cardId);
-    const overIdx = targetCol.cards.findIndex((c) => c.id === overId);
-
-    // Eğer kart hedef column'da değilse (column'un üstüne bırakıldıysa) sona ekleyelim zaten
-    if (cardIdx === -1) return board;
-    if (overIdx === -1) return board;
-    if (cardIdx === overIdx) return board;
-
-    const newCards = [...targetCol.cards];
-    const [moved] = newCards.splice(cardIdx, 1);
-    newCards.splice(overIdx, 0, moved);
-
-    const columns = board.columns.map((c) =>
-        c.id === overColumnId ? { ...c, cards: newCards } : c,
-    );
     return { ...board, columns };
 }
 
