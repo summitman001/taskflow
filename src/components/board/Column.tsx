@@ -1,7 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { MoreHorizontal, Trash2, Pencil } from "lucide-react";
+import { MoreHorizontal, Trash2, Pencil, GripVertical } from "lucide-react";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -25,6 +28,23 @@ export function Column({ column, boardId }: Props) {
 
     const updateColumn = useUpdateColumn(boardId);
     const deleteColumn = useDeleteColumn(boardId);
+
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({
+        id: column.id,
+        data: { type: "column", column },
+    });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+    };
 
     const handleSubmitTitle = () => {
         const trimmed = editTitle.trim();
@@ -51,10 +71,28 @@ export function Column({ column, boardId }: Props) {
         deleteColumn.mutate(column.id);
     };
 
+    const cardIds = column.cards.map((c) => c.id);
+
     return (
-        <div className="flex h-full w-72 flex-shrink-0 flex-col rounded-lg bg-slate-100">
+        <div
+            ref={setNodeRef}
+            style={style}
+            className={`flex h-full w-72 flex-shrink-0 flex-col rounded-lg bg-slate-100 ${isDragging ? "opacity-50" : ""
+                }`}
+        >
             {/* Column header */}
-            <div className="flex items-center justify-between gap-2 px-3 py-3">
+            <div className="flex items-center justify-between gap-1 px-3 py-3">
+                {/* Drag handle */}
+                <button
+                    type="button"
+                    {...attributes}
+                    {...listeners}
+                    className="cursor-grab touch-none rounded p-1 text-slate-400 hover:bg-slate-200 hover:text-slate-600 active:cursor-grabbing"
+                    aria-label={`Drag column ${column.title}`}
+                >
+                    <GripVertical className="h-4 w-4" />
+                </button>
+
                 {isEditing ? (
                     <Input
                         autoFocus
@@ -103,12 +141,14 @@ export function Column({ column, boardId }: Props) {
                 </DropdownMenu>
             </div>
 
-            {/* Cards list */}
-            <div className="flex-1 space-y-2 overflow-y-auto px-2 pb-2">
-                {column.cards.map((card) => (
-                    <Card key={card.id} card={card} />
-                ))}
-            </div>
+            {/* Cards list — kendi SortableContext'i */}
+            <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
+                <div className="flex-1 space-y-2 overflow-y-auto px-2 pb-2">
+                    {column.cards.map((card) => (
+                        <Card key={card.id} card={card} columnId={column.id} />
+                    ))}
+                </div>
+            </SortableContext>
 
             {/* Add card button */}
             <div className="px-2 pb-3">

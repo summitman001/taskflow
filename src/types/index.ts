@@ -11,3 +11,8 @@ export type BoardWithColumns = Board & {
 export type ColumnWithCards = Column & {
     cards: Card[];
 };
+
+// Drag-drop için ek tipler
+export type DragData =
+    | { type: "card"; card: Card; columnId: string }
+    | { type: "column"; column: Column };
