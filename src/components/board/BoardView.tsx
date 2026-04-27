@@ -18,11 +18,13 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useBoardQuery, boardKey } from "@/hooks/useBoard";
 import { useUIStore } from "@/stores/useUIStore";
 import { useMoveCard, useMoveColumn } from "@/hooks/useDnd";
+import { useBoardTheme } from "@/hooks/useTheme";
 import { getPositionForIndex } from "@/lib/positioning";
 import { ColumnList } from "./ColumnList";
 import { CardEditDialog } from "./CardEditDialog";
 import { CardOverlay } from "./CardOverlay";
 import { ColumnOverlay } from "./ColumnOverlay";
+import { ThemePicker } from "./ThemePicker";
 import type { BoardWithColumns, DragData } from "@/types";
 
 interface Props {
@@ -66,6 +68,9 @@ function BoardContent({
 
     const moveCard = useMoveCard(boardId);
     const moveColumn = useMoveColumn(boardId);
+
+    // 🆕 Theme yönetimi
+    const { theme, setTheme } = useBoardTheme(boardId);
 
     // Drag başlarken kartın orijinal lokasyonunu snapshot'la.
     // handleDragOver cache'i mutate ettiği için, end'de orijinal yer kaybolur.
@@ -278,14 +283,14 @@ function BoardContent({
             : null;
 
     return (
-        <div className="flex h-full flex-col">
-            <div className="border-b bg-white px-6 py-4">
-                <div className="flex items-center justify-between">
-                    <div>
-                        <h1 className="text-xl font-semibold tracking-tight text-slate-900">
+        <div className={`flex h-full flex-col transition-colors duration-300 ${theme.className}`}>
+            <div className="border-b border-slate-200/80 bg-white/80 backdrop-blur-md px-6 py-4">
+                <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0 flex-1">
+                        <h1 className={`truncate text-xl font-semibold tracking-tight ${theme.isDark ? "text-white" : "text-slate-900"}`}>
                             {board.title}
                         </h1>
-                        <p className="mt-0.5 flex items-center gap-2 text-sm tabular-nums text-slate-500">
+                        <p className={`mt-0.5 flex items-center gap-2 text-sm tabular-nums ${theme.isDark ? "text-slate-400" : "text-slate-500"}`}>
                             <span>
                                 {board.columns.length} column
                                 {board.columns.length === 1 ? "" : "s"}
@@ -299,7 +304,9 @@ function BoardContent({
                             </span>
                         </p>
                     </div>
-                    {/* Bu alan ileride filter/sort butonları için */}
+
+                    {/* 🆕 Theme picker */}
+                    <ThemePicker currentThemeId={theme.id} onChange={setTheme} />
                 </div>
             </div>
 

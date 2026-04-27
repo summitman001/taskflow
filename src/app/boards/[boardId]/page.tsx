@@ -12,17 +12,15 @@ export default async function BoardPage({
 
     return (
         <div className="flex h-screen flex-col bg-slate-50">
-            <header className="border-b bg-white">
+            <header className="sticky top-0 z-20 border-b border-slate-200/80 bg-white/90 backdrop-blur-md">
                 <div className="flex items-center justify-between px-6 py-3">
-                    <div className="flex items-center gap-4">
-                        <Link
-                            href="/boards"
-                            className="flex items-center gap-1 text-sm text-slate-600 hover:text-slate-900"
-                        >
-                            <ArrowLeft className="h-4 w-4" />
-                            Boards
-                        </Link>
-                    </div>
+                    <Link
+                        href="/boards"
+                        className="flex items-center gap-1.5 text-sm font-medium text-slate-600 transition hover:text-slate-900"
+                    >
+                        <ArrowLeft className="h-4 w-4" />
+                        Boards
+                    </Link>
                     <UserButton />
                 </div>
             </header>

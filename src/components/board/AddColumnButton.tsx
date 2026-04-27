@@ -5,6 +5,7 @@ import { Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useCreateColumn } from "@/hooks/useColumns";
+import { useBoardTheme } from "@/hooks/useTheme";
 import { getPositionAtEnd } from "@/lib/positioning";
 import type { Column } from "@/types";
 
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function AddColumnButton({ boardId, existingColumns }: Props) {
+    const { theme } = useBoardTheme(boardId);
     const [isAdding, setIsAdding] = useState(false);
     const [title, setTitle] = useState("");
     const inputRef = useRef<HTMLInputElement>(null);
@@ -47,7 +49,11 @@ export function AddColumnButton({ boardId, existingColumns }: Props) {
             <button
                 type="button"
                 onClick={() => setIsAdding(true)}
-                className="flex h-12 w-72 flex-shrink-0 items-center justify-center gap-1 rounded-lg border-2 border-dashed border-slate-300 text-sm text-slate-600 transition hover:border-slate-400 hover:bg-slate-50"
+                className={`flex h-12 w-72 flex-shrink-0 items-center justify-center gap-1 rounded-lg border-2 border-dashed text-sm transition ${
+                    theme.isDark
+                        ? "border-slate-700 text-slate-400 hover:border-slate-600 hover:bg-slate-800/30"
+                        : "border-slate-300 text-slate-600 hover:border-slate-400 hover:bg-slate-50"
+                }`}
             >
                 <Plus className="h-4 w-4" />
                 Add column

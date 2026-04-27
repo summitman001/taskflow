@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { useDeleteColumn, useUpdateColumn } from "@/hooks/useColumns";
+import { useBoardTheme } from "@/hooks/useTheme";
 import { Card } from "./Card";
 import { AddCardButton } from "./AddCardButton";
 import type { ColumnWithCards } from "@/types";
@@ -28,6 +29,8 @@ export function Column({ column, boardId }: Props) {
 
     const updateColumn = useUpdateColumn(boardId);
     const deleteColumn = useDeleteColumn(boardId);
+
+    const { theme } = useBoardTheme(boardId);
 
     const {
         attributes,
@@ -77,11 +80,16 @@ export function Column({ column, boardId }: Props) {
         <div
             ref={setNodeRef}
             style={style}
-            className={`flex h-full w-72 flex-shrink-0 flex-col rounded-xl border border-slate-200 bg-slate-50/80 backdrop-blur-sm transition-all ${isDragging ? "opacity-50 ring-2 ring-blue-400" : ""
-                }`}
+            className={`flex h-full w-72 flex-shrink-0 flex-col rounded-xl border backdrop-blur-sm transition-all ${
+                theme.isDark
+                    ? "border-slate-700/50 bg-slate-800/40"
+                    : "border-slate-200 bg-slate-50/80"
+            } ${isDragging ? "opacity-50 ring-2 ring-blue-400" : ""}`}
         >
             {/* Column header */}
-            <div className="flex items-center justify-between gap-1 border-b border-slate-200/60 px-3 py-3">
+            <div className={`flex items-center justify-between gap-1 border-b px-3 py-3 ${
+                theme.isDark ? "border-slate-700/40" : "border-slate-200/60"
+            }`}>
                 {/* Drag handle */}
                 <button
                     type="button"
@@ -112,10 +120,16 @@ export function Column({ column, boardId }: Props) {
                 ) : (
                     <h3
                         onClick={() => setIsEditing(true)}
-                        className="flex flex-1 cursor-pointer items-center gap-2 truncate text-sm font-semibold text-slate-700"
+                        className={`flex flex-1 cursor-pointer items-center gap-2 truncate text-sm font-semibold ${
+                            theme.isDark ? "text-slate-200" : "text-slate-700"
+                        }`}
                     >
                         <span className="truncate">{column.title}</span>
-                        <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-medium tabular-nums text-slate-600">
+                        <span className={`rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums ${
+                            theme.isDark
+                                ? "bg-slate-700 text-slate-300"
+                                : "bg-slate-200 text-slate-600"
+                        }`}>
                             {column.cards.length}
                         </span>
                     </h3>
