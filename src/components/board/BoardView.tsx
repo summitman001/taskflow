@@ -280,13 +280,27 @@ function BoardContent({
     return (
         <div className="flex h-full flex-col">
             <div className="border-b bg-white px-6 py-4">
-                <h1 className="text-xl font-semibold text-slate-900">{board.title}</h1>
-                <p className="mt-0.5 text-sm tabular-nums text-slate-500">
-                    {board.columns.length} column
-                    {board.columns.length === 1 ? "" : "s"} ·{" "}
-                    {board.columns.reduce((sum, c) => sum + c.cards.length, 0)} card
-                    {board.columns.reduce((sum, c) => sum + c.cards.length, 0) === 1 ? "" : "s"}
-                </p>
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h1 className="text-xl font-semibold tracking-tight text-slate-900">
+                            {board.title}
+                        </h1>
+                        <p className="mt-0.5 flex items-center gap-2 text-sm tabular-nums text-slate-500">
+                            <span>
+                                {board.columns.length} column
+                                {board.columns.length === 1 ? "" : "s"}
+                            </span>
+                            <span className="text-slate-300">·</span>
+                            <span>
+                                {board.columns.reduce((sum, c) => sum + c.cards.length, 0)} card
+                                {board.columns.reduce((sum, c) => sum + c.cards.length, 0) === 1
+                                    ? ""
+                                    : "s"}
+                            </span>
+                        </p>
+                    </div>
+                    {/* Bu alan ileride filter/sort butonları için */}
+                </div>
             </div>
 
             <DndContext

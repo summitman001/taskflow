@@ -121,18 +121,76 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
+
   html {
     @apply font-sans;
   }
 }
 
-/* Mobil drag esnasında scroll'u engelle */
+/* Inter font için OpenType özellikleri — daha pro görünüm */
+html {
+  font-feature-settings:
+    "cv11" 1,
+    /* Curved single-story 'a' */
+    "ss01" 1,
+    /* Stylistic alternates */
+    "ss03" 1;
+  /* Refined characters */
+}
+
+/* Selection rengi — markamızla uyumlu */
+::selection {
+  background-color: rgb(99 102 241 / 0.15);
+  color: inherit;
+}
+
+/* Scrollbar estetiği (özellikle yatay scroll'da görünür) */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: rgb(203 213 225);
+  /* slate-300 */
+  border-radius: 4px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background: rgb(148 163 184);
+  /* slate-400 */
+}
+
+/* Focus rings — sadece klavye navigasyonunda interaktif elementlere */
+button:focus-visible,
+a:focus-visible,
+[role="button"]:focus-visible,
+[tabindex]:focus-visible {
+  outline: 2px solid rgb(99 102 241);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Input/textarea kendi focus state'lerini yönetir, biz default'u güzelleştirelim */
+input:focus-visible,
+textarea:focus-visible {
+  outline: none;
+}
+
+/* Drag aktifken sayfa scroll'u kapat (mobilden) */
 body.dragging-active {
   overflow: hidden;
   touch-action: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 /* Drag handle'larda native touch behavior'ı kapat */

@@ -77,11 +77,11 @@ export function Column({ column, boardId }: Props) {
         <div
             ref={setNodeRef}
             style={style}
-            className={`flex h-full w-72 flex-shrink-0 flex-col rounded-lg bg-slate-100 ${isDragging ? "opacity-50" : ""
+            className={`flex h-full w-72 flex-shrink-0 flex-col rounded-xl border border-slate-200 bg-slate-50/80 backdrop-blur-sm transition-all ${isDragging ? "opacity-50 ring-2 ring-blue-400" : ""
                 }`}
         >
             {/* Column header */}
-            <div className="flex items-center justify-between gap-1 px-3 py-3">
+            <div className="flex items-center justify-between gap-1 border-b border-slate-200/60 px-3 py-3">
                 {/* Drag handle */}
                 <button
                     type="button"
@@ -112,10 +112,10 @@ export function Column({ column, boardId }: Props) {
                 ) : (
                     <h3
                         onClick={() => setIsEditing(true)}
-                        className="flex-1 cursor-pointer truncate text-sm font-semibold text-slate-700"
+                        className="flex flex-1 cursor-pointer items-center gap-2 truncate text-sm font-semibold text-slate-700"
                     >
-                        {column.title}
-                        <span className="ml-2 text-xs font-normal text-slate-400">
+                        <span className="truncate">{column.title}</span>
+                        <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[11px] font-medium tabular-nums text-slate-600">
                             {column.cards.length}
                         </span>
                     </h3>
@@ -146,8 +146,9 @@ export function Column({ column, boardId }: Props) {
             <SortableContext items={cardIds} strategy={verticalListSortingStrategy}>
                 <div className="flex-1 space-y-2 overflow-y-auto px-2 pb-2">
                     {column.cards.length === 0 ? (
-                        <div className="flex h-20 items-center justify-center rounded-md border-2 border-dashed border-slate-300 text-xs text-slate-400">
-                            Drop cards here
+                        <div className="flex h-24 flex-col items-center justify-center gap-1 rounded-lg border-2 border-dashed border-slate-200 bg-white/40 px-3 text-center transition hover:border-slate-300 hover:bg-white/60">
+                            <p className="text-xs font-medium text-slate-400">No cards yet</p>
+                            <p className="text-[11px] text-slate-400">Drop here or click below to add</p>
                         </div>
                     ) : (
                         column.cards.map((card) => (

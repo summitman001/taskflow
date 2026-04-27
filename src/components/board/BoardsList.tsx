@@ -84,57 +84,96 @@ export function BoardsList() {
 }
 
 function BoardCard({
-  board,
-  onDeleteClick,
+    board,
+    onDeleteClick,
 }: {
-  board: { id: string; title: string; _count: { columns: number } };
-  onDeleteClick: () => void;
+    board: { id: string; title: string; _count: { columns: number } };
+    onDeleteClick: () => void;
 }) {
-  const colorClass = getColorFromId(board.id);
+    const colorClass = getColorFromId(board.id);
 
-  return (
-    <div className="group relative overflow-hidden rounded-lg border border-slate-200 bg-white transition hover:border-slate-300 hover:shadow-sm">
-      {/* Renk şeridi */}
-      <div className={`h-2 w-full ${colorClass}`} />
+    return (
+        <div className="group relative overflow-hidden rounded-lg border border-slate-200 bg-white transition hover:border-slate-300 hover:shadow-sm">
+            {/* Renk şeridi */}
+            <div className={`h-2 w-full ${colorClass}`} />
 
-      <Link href={`/boards/${board.id}`} className="block p-5">
-        <h3 className="font-semibold text-slate-900">{board.title}</h3>
-        <p className="mt-1 text-sm text-slate-500">
-          {board._count.columns} column{board._count.columns === 1 ? "" : "s"}
-        </p>
-      </Link>
+            <Link href={`/boards/${board.id}`} className="block p-5">
+                <h3 className="font-semibold text-slate-900">{board.title}</h3>
+                <p className="mt-1 text-sm text-slate-500">
+                    {board._count.columns} column{board._count.columns === 1 ? "" : "s"}
+                </p>
+            </Link>
 
-      <button
-        type="button"
-        onClick={(e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          onDeleteClick();
-        }}
-        className="absolute right-3 top-5 rounded-md p-1.5 text-slate-400 opacity-0 transition hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
-        aria-label={`Delete board ${board.title}`}
-      >
-        <Trash2 className="h-4 w-4" />
-      </button>
-    </div>
-  );
+            <button
+                type="button"
+                onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onDeleteClick();
+                }}
+                className="absolute right-3 top-5 rounded-md p-1.5 text-slate-400 opacity-0 transition hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
+                aria-label={`Delete board ${board.title}`}
+            >
+                <Trash2 className="h-4 w-4" />
+            </button>
+        </div>
+    );
 }
 
 function EmptyState({ onCreate }: { onCreate: () => void }) {
     return (
-        <div className="rounded-lg border-2 border-dashed border-slate-200 bg-white p-12 text-center">
-            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
-                <LayoutGrid className="h-6 w-6 text-slate-400" />
+        <div className="rounded-xl border-2 border-dashed border-slate-200 bg-white p-12 text-center">
+            {/* Custom SVG illustration */}
+            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center">
+                <svg
+                    viewBox="0 0 80 80"
+                    fill="none"
+                    xmlns="http://www.w3.org/2000/svg"
+                    className="h-20 w-20"
+                >
+                    <rect
+                        x="8"
+                        y="16"
+                        width="20"
+                        height="48"
+                        rx="3"
+                        className="fill-blue-100 stroke-blue-300"
+                        strokeWidth="1.5"
+                    />
+                    <rect
+                        x="30"
+                        y="16"
+                        width="20"
+                        height="36"
+                        rx="3"
+                        className="fill-emerald-100 stroke-emerald-300"
+                        strokeWidth="1.5"
+                    />
+                    <rect
+                        x="52"
+                        y="16"
+                        width="20"
+                        height="24"
+                        rx="3"
+                        className="fill-amber-100 stroke-amber-300"
+                        strokeWidth="1.5"
+                    />
+                    <line x1="12" y1="24" x2="24" y2="24" className="stroke-blue-300" strokeWidth="1.5" strokeLinecap="round" />
+                    <line x1="12" y1="30" x2="20" y2="30" className="stroke-blue-300" strokeWidth="1.5" strokeLinecap="round" />
+                    <line x1="34" y1="24" x2="46" y2="24" className="stroke-emerald-300" strokeWidth="1.5" strokeLinecap="round" />
+                    <line x1="56" y1="24" x2="68" y2="24" className="stroke-amber-300" strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
             </div>
-            <h3 className="mb-1 text-lg font-semibold text-slate-900">
+            <h3 className="mb-2 text-lg font-semibold text-slate-900">
                 No boards yet
             </h3>
-            <p className="mb-6 text-sm text-slate-500">
-                Create your first board to start organizing tasks.
+            <p className="mx-auto mb-6 max-w-sm text-sm text-slate-500">
+                Boards help you organize work into columns and cards. Create your first
+                board to get started.
             </p>
-            <Button onClick={onCreate}>
+            <Button onClick={onCreate} size="lg">
                 <Plus className="mr-2 h-4 w-4" />
-                Create board
+                Create your first board
             </Button>
         </div>
     );

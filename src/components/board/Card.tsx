@@ -44,9 +44,8 @@ export function Card({ card, columnId }: Props) {
         }
         setEditingCardId(card.id);
       }}
-      className={`group relative block w-full cursor-grab touch-none rounded-md border border-slate-200 bg-white p-3 text-left shadow-sm transition hover:border-slate-300 hover:shadow active:cursor-grabbing ${
-        isDragging ? "opacity-40" : ""
-      }`}
+      className={`group relative block w-full cursor-grab touch-none rounded-lg border border-slate-200 bg-white p-3 text-left shadow-sm transition-all duration-150 ease-out hover:-translate-y-[1px] hover:border-slate-300 hover:shadow-md active:cursor-grabbing ${isDragging ? "opacity-40" : ""
+        }`}
     >
       <p className="text-sm font-medium text-slate-900">{card.title}</p>
       {card.description && (
