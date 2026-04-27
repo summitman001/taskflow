@@ -46,6 +46,8 @@ model Card {
   title       String
   description String?
   position    String   // fractional indexing
+  priority    String?  // "low" | "medium" | "high" | null
+  dueDate     DateTime?
   columnId    String
   column      Column   @relation(fields: [columnId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())

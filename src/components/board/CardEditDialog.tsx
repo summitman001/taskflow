@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Trash2 } from "lucide-react";
+import { Trash2, Calendar, X } from "lucide-react";
 import {
     Dialog,
     DialogContent,
@@ -15,6 +15,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useUIStore } from "@/stores/useUIStore";
 import { useDeleteCard, useUpdateCard } from "@/hooks/useCards";
+import { priorities, type Priority } from "@/lib/priority";
+import { toDateInputValue } from "@/lib/date";
 import type { BoardWithColumns } from "@/types";
 
 interface Props {
@@ -26,7 +28,6 @@ export function CardEditDialog({ boardId, board }: Props) {
     const editingCardId = useUIStore((s) => s.editingCardId);
     const setEditingCardId = useUIStore((s) => s.setEditingCardId);
 
-    // Tüm column'ların kartlarını dolaş, eşleşeni bul
     const card =
         editingCardId &&
         board.columns
@@ -35,15 +36,19 @@ export function CardEditDialog({ boardId, board }: Props) {
 
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
+    const [priority, setPriority] = useState<Priority | null>(null);
+    const [dueDate, setDueDate] = useState("");
 
     const updateCard = useUpdateCard(boardId);
     const deleteCard = useDeleteCard(boardId);
 
-    // Kart değişince form'u senkronize et
+    // Kart değişince formu senkronize et
     useEffect(() => {
         if (card) {
             setTitle(card.title);
             setDescription(card.description ?? "");
+            setPriority((card.priority as Priority | null) ?? null);
+            setDueDate(toDateInputValue(card.dueDate));
         }
     }, [card]);
 
@@ -55,9 +60,15 @@ export function CardEditDialog({ boardId, board }: Props) {
         if (!trimmedTitle) return;
 
         const trimmedDesc = description.trim();
+        const newDueDate = dueDate ? new Date(dueDate).toISOString() : null;
+        const newPriority = priority ?? null;
+
+        // Hiç değişiklik yoksa close
         const noChange =
             trimmedTitle === card.title &&
-            (trimmedDesc || null) === (card.description ?? null);
+            (trimmedDesc || null) === (card.description ?? null) &&
+            newPriority === (card.priority ?? null) &&
+            newDueDate === (card.dueDate ? new Date(card.dueDate).toISOString() : null);
 
         if (noChange) {
             handleClose();
@@ -69,6 +80,8 @@ export function CardEditDialog({ boardId, board }: Props) {
                 cardId: card.id,
                 title: trimmedTitle,
                 description: trimmedDesc || null,
+                priority: newPriority,
+                dueDate: newDueDate,
             },
             { onSuccess: handleClose },
         );
@@ -88,6 +101,7 @@ export function CardEditDialog({ boardId, board }: Props) {
                 </DialogHeader>
 
                 <div className="space-y-4 py-2">
+                    {/* Title */}
                     <div className="space-y-2">
                         <Label htmlFor="card-title">Title</Label>
                         <Input
@@ -99,6 +113,7 @@ export function CardEditDialog({ boardId, board }: Props) {
                         />
                     </div>
 
+                    {/* Description */}
                     <div className="space-y-2">
                         <Label htmlFor="card-description">Description</Label>
                         <Textarea
@@ -106,9 +121,73 @@ export function CardEditDialog({ boardId, board }: Props) {
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             placeholder="Add a more detailed description…"
-                            rows={5}
+                            rows={4}
                             disabled={updateCard.isPending}
                         />
+                    </div>
+
+                    {/* Priority + Due Date */}
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div className="space-y-2">
+                            <Label>Priority</Label>
+                            <div className="flex flex-wrap gap-1.5">
+                                {(Object.values(priorities) as Array<typeof priorities[Priority]>).map(
+                                    (p) => {
+                                        const Icon = p.icon;
+                                        const isSelected = priority === p.id;
+                                        return (
+                                            <button
+                                                key={p.id}
+                                                type="button"
+                                                onClick={() => setPriority(isSelected ? null : p.id)}
+                                                disabled={updateCard.isPending}
+                                                className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition ${isSelected
+                                                        ? p.buttonClassName
+                                                        : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                                                    }`}
+                                            >
+                                                <Icon className="h-3 w-3" />
+                                                {p.label}
+                                            </button>
+                                        );
+                                    },
+                                )}
+                            </div>
+                            {priority && (
+                                <button
+                                    type="button"
+                                    onClick={() => setPriority(null)}
+                                    className="text-[11px] text-slate-500 hover:text-slate-700"
+                                >
+                                    Clear
+                                </button>
+                            )}
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label htmlFor="card-due-date">Due date</Label>
+                            <div className="relative">
+                                <Calendar className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                                <Input
+                                    id="card-due-date"
+                                    type="date"
+                                    value={dueDate}
+                                    onChange={(e) => setDueDate(e.target.value)}
+                                    disabled={updateCard.isPending}
+                                    className="pl-9"
+                                />
+                                {dueDate && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setDueDate("")}
+                                        className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                                        aria-label="Clear date"
+                                    >
+                                        <X className="h-3 w-3" />
+                                    </button>
+                                )}
+                            </div>
+                        </div>
                     </div>
                 </div>
 

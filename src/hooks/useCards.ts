@@ -14,6 +14,8 @@ export function useCreateCard(boardId: string) {
             columnId: string;
             title: string;
             position: string;
+            priority?: string | null;
+            dueDate?: string | null;
         }) =>
             apiFetch<Card>("/api/cards", {
                 method: "POST",
@@ -39,6 +41,8 @@ export function useUpdateCard(boardId: string) {
             cardId: string;
             title?: string;
             description?: string | null;
+            priority?: string | null;
+            dueDate?: string | null;
         }) =>
             apiFetch<Card>(`/api/cards/${cardId}`, {
                 method: "PATCH",

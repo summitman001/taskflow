@@ -52,6 +52,8 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
             description?: string | null;
             position?: string;
             columnId?: string;
+            priority?: string | null;
+            dueDate?: Date | null;
         } = {};
 
         if (body.title !== undefined) {
@@ -67,6 +69,31 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
                 data.description = body.description.trim() || null;
             } else {
                 return apiError.badRequest("description must be a string or null");
+            }
+        }
+
+        if (body.priority !== undefined) {
+            if (body.priority === null) {
+                data.priority = null;
+            } else if (
+                typeof body.priority === "string" &&
+                ["low", "medium", "high"].includes(body.priority)
+            ) {
+                data.priority = body.priority;
+            } else {
+                return apiError.badRequest("priority must be one of: low, medium, high, or null");
+            }
+        }
+
+        if (body.dueDate !== undefined) {
+            if (body.dueDate === null) {
+                data.dueDate = null;
+            } else {
+                const parsed = new Date(body.dueDate);
+                if (isNaN(parsed.getTime())) {
+                    return apiError.badRequest("dueDate must be a valid ISO date string or null");
+                }
+                data.dueDate = parsed;
             }
         }
 

@@ -31,6 +31,21 @@ export async function POST(req: NextRequest) {
             return apiError.badRequest("description must be a string");
         }
 
+        // Priority validation
+        if (body.priority !== undefined && body.priority !== null) {
+            if (!["low", "medium", "high"].includes(body.priority)) {
+                return apiError.badRequest("priority must be one of: low, medium, high");
+            }
+        }
+
+        // Due date validation
+        if (body.dueDate !== undefined && body.dueDate !== null) {
+            const parsed = new Date(body.dueDate);
+            if (isNaN(parsed.getTime())) {
+                return apiError.badRequest("dueDate must be a valid ISO date string");
+            }
+        }
+
         // Column sahipliği kontrolü (board üzerinden)
         const column = await prisma.column.findUnique({
             where: { id: body.columnId },
@@ -45,6 +60,8 @@ export async function POST(req: NextRequest) {
                 description: body.description?.trim() || null,
                 position: body.position,
                 columnId: body.columnId,
+                priority: body.priority ?? null,
+                dueDate: body.dueDate ? new Date(body.dueDate) : null,
             },
         });
 
