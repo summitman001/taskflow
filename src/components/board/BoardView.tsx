@@ -25,6 +25,8 @@ import { CardEditDialog } from "./CardEditDialog";
 import { CardOverlay } from "./CardOverlay";
 import { ColumnOverlay } from "./ColumnOverlay";
 import { ThemePicker } from "./ThemePicker";
+import { OnboardingBanner } from "./OnboardingBanner";
+import { KeyboardShortcutsButton } from "./KeyboardShortcutsButton";
 import type { BoardWithColumns, DragData } from "@/types";
 
 interface Props {
@@ -284,6 +286,8 @@ function BoardContent({
 
     return (
         <div className={`flex h-full flex-col transition-colors duration-300 ${theme.className}`}>
+            <OnboardingBanner />
+
             <div className="border-b border-slate-200/80 bg-white/80 backdrop-blur-md px-6 py-4">
                 <div className="flex items-center justify-between gap-4">
                     <div className="min-w-0 flex-1">
@@ -326,6 +330,9 @@ function BoardContent({
             </DndContext>
 
             <CardEditDialog boardId={boardId} board={board} />
+
+            {/* 🆕 Sağ alt floating */}
+            <KeyboardShortcutsButton />
         </div>
     );
 }

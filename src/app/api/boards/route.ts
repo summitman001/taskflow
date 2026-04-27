@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getOrCreateUser } from "@/lib/auth";
 import { apiError, validateTitle } from "@/lib/api";
+import { generateKeyBetween } from "fractional-indexing";
 
 /**
  * GET /api/boards
@@ -44,10 +45,24 @@ export async function POST(req: NextRequest) {
         const titleError = validateTitle(body.title);
         if (titleError) return apiError.badRequest(titleError);
 
+        const colPos1 = generateKeyBetween(null, null);
+        const colPos2 = generateKeyBetween(colPos1, null);
+        const colPos3 = generateKeyBetween(colPos2, null);
+
         const board = await prisma.board.create({
             data: {
                 title: body.title.trim(),
                 ownerId: user.id,
+                columns: {
+                    create: [
+                        { title: "To Do", position: colPos1 },
+                        { title: "In Progress", position: colPos2 },
+                        { title: "Done", position: colPos3 },
+                    ],
+                },
+            },
+            include: {
+                columns: true,
             },
         });
 

@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { LayoutGrid, Plus, Trash2 } from "lucide-react";
-import { useBoardsQuery, useDeleteBoard } from "@/hooks/useBoards";
+import { LayoutGrid, Plus, Sparkles, Trash2 } from "lucide-react";
+import { useBoardsQuery, useCreateSampleBoard, useDeleteBoard } from "@/hooks/useBoards";
 import { Button } from "@/components/ui/button";
 import { CreateBoardDialog } from "./CreateBoardDialog";
 import { DeleteBoardDialog } from "./DeleteBoardDialog";
@@ -121,6 +121,8 @@ function BoardCard({
 }
 
 function EmptyState({ onCreate }: { onCreate: () => void }) {
+    const createSample = useCreateSampleBoard();
+
     return (
         <div className="rounded-xl border-2 border-dashed border-slate-200 bg-white p-12 text-center">
             {/* Custom SVG illustration */}
@@ -164,17 +166,35 @@ function EmptyState({ onCreate }: { onCreate: () => void }) {
                     <line x1="56" y1="24" x2="68" y2="24" className="stroke-amber-300" strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
             </div>
-            <h3 className="mb-2 text-lg font-semibold text-slate-900">
-                No boards yet
+
+            <h3 className="mb-2 text-xl font-semibold text-slate-900">
+                Welcome to TaskFlow 👋
             </h3>
             <p className="mx-auto mb-6 max-w-sm text-sm text-slate-500">
-                Boards help you organize work into columns and cards. Create your first
-                board to get started.
+                Start by creating an empty board, or load a sample sprint to explore
+                the drag-and-drop, themes, and keyboard shortcuts.
             </p>
-            <Button onClick={onCreate} size="lg">
-                <Plus className="mr-2 h-4 w-4" />
-                Create your first board
-            </Button>
+
+            <div className="flex flex-col items-center justify-center gap-3 sm:flex-row">
+                <Button
+                    onClick={() => createSample.mutate()}
+                    disabled={createSample.isPending}
+                    variant="outline"
+                    size="lg"
+                >
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    {createSample.isPending ? "Loading sample…" : "Try with sample data"}
+                </Button>
+
+                <Button onClick={onCreate} size="lg">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Create empty board
+                </Button>
+            </div>
+
+            <p className="mt-6 text-[11px] text-slate-400">
+                Sample data is yours to edit or delete after.
+            </p>
         </div>
     );
 }

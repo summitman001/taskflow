@@ -66,3 +66,24 @@ export function useDeleteBoard() {
         },
     });
 }
+
+/**
+ * Örnek (sample) board oluştur — onboarding için.
+ */
+export function useCreateSampleBoard() {
+    const qc = useQueryClient();
+
+    return useMutation({
+        mutationFn: () =>
+            apiFetch<Board>("/api/boards/sample", {
+                method: "POST",
+            }),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: BOARDS_KEY });
+            toast.success("Sample board created");
+        },
+        onError: (error: Error) => {
+            toast.error(error.message);
+        },
+    });
+}
