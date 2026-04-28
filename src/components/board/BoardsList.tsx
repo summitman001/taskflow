@@ -2,122 +2,232 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { LayoutGrid, Plus, Sparkles, Trash2 } from "lucide-react";
-import { useBoardsQuery, useCreateSampleBoard, useDeleteBoard } from "@/hooks/useBoards";
+import { LayoutGrid, Plus, Trash2, Sparkles } from "lucide-react";
+import {
+  useBoardsQuery,
+  useDeleteBoard,
+  useCreateSampleBoard,
+  type BoardListItem,
+} from "@/hooks/useBoards";
 import { Button } from "@/components/ui/button";
 import { CreateBoardDialog } from "./CreateBoardDialog";
 import { DeleteBoardDialog } from "./DeleteBoardDialog";
+import { BoardsStats } from "./BoardsStats";
 import { getColorFromId } from "@/lib/utils";
 
 export function BoardsList() {
-    const { data: boards, isLoading, isError, error } = useBoardsQuery();
-    const deleteBoard = useDeleteBoard();
-    const [createOpen, setCreateOpen] = useState(false);
-    const [boardToDelete, setBoardToDelete] = useState<{
-        id: string;
-        title: string;
-    } | null>(null);
+  const { data: boards, isLoading, isError, error } = useBoardsQuery();
+  const deleteBoard = useDeleteBoard();
+  const [createOpen, setCreateOpen] = useState(false);
+  const [boardToDelete, setBoardToDelete] = useState<{
+    id: string;
+    title: string;
+  } | null>(null);
 
-    if (isLoading) {
-        return (
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {Array.from({ length: 3 }).map((_, i) => (
-                    <div
-                        key={i}
-                        className="h-32 animate-pulse rounded-lg border border-slate-200 bg-white"
-                    />
-                ))}
-            </div>
-        );
-    }
-
-    if (isError) {
-        return (
-            <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-red-700">
-                Failed to load boards: {error?.message ?? "Unknown error"}
-            </div>
-        );
-    }
-
+  if (isLoading) {
     return (
-        <>
-            <div className="mb-6 flex items-center justify-between">
-                <p className="text-sm text-slate-600">
-                    {boards?.length ?? 0} board{boards?.length === 1 ? "" : "s"}
-                </p>
-                <Button onClick={() => setCreateOpen(true)}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    New board
-                </Button>
-            </div>
-
-            {boards && boards.length === 0 ? (
-                <EmptyState onCreate={() => setCreateOpen(true)} />
-            ) : (
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {boards?.map((board) => (
-                        <BoardCard
-                            key={board.id}
-                            board={board}
-                            onDeleteClick={() =>
-                                setBoardToDelete({ id: board.id, title: board.title })
-                            }
-                        />
-                    ))}
-                </div>
-            )}
-
-            <CreateBoardDialog open={createOpen} onOpenChange={setCreateOpen} />
-
-            <DeleteBoardDialog
-                board={boardToDelete}
-                onClose={() => setBoardToDelete(null)}
-                onConfirm={(id) => {
-                    deleteBoard.mutate(id, {
-                        onSuccess: () => setBoardToDelete(null),
-                    });
-                }}
-                isDeleting={deleteBoard.isPending}
+      <div className="space-y-8">
+        {/* Stats skeleton */}
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-20 animate-pulse rounded-xl border border-slate-200 bg-white"
             />
-        </>
+          ))}
+        </div>
+
+        {/* Boards skeleton */}
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="h-48 animate-pulse rounded-xl border border-slate-200 bg-white"
+            />
+          ))}
+        </div>
+      </div>
     );
+  }
+
+  if (isError) {
+    return (
+      <div className="rounded-lg border border-red-200 bg-red-50 p-6 text-red-700">
+        Failed to load boards: {error?.message ?? "Unknown error"}
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {/* Stats hero */}
+      {boards && boards.length > 0 && (
+        <div className="mb-10">
+          <BoardsStats boards={boards} />
+        </div>
+      )}
+
+      {/* Section header */}
+      {boards && boards.length > 0 && (
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h3 className="text-lg font-semibold tracking-tight text-slate-900">
+              Your boards
+            </h3>
+            <p className="mt-0.5 text-xs text-slate-500">
+              {boards.length} board{boards.length === 1 ? "" : "s"} · Click any
+              to open
+            </p>
+          </div>
+          <Button onClick={() => setCreateOpen(true)} size="sm">
+            <Plus className="mr-1.5 h-4 w-4" />
+            New board
+          </Button>
+        </div>
+      )}
+
+      {/* Empty or list */}
+      {boards && boards.length === 0 ? (
+        <EmptyState onCreate={() => setCreateOpen(true)} />
+      ) : (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {boards?.map((board) => (
+            <BoardCard
+              key={board.id}
+              board={board}
+              onDeleteClick={() =>
+                setBoardToDelete({ id: board.id, title: board.title })
+              }
+            />
+          ))}
+        </div>
+      )}
+
+      <CreateBoardDialog open={createOpen} onOpenChange={setCreateOpen} />
+
+      <DeleteBoardDialog
+        board={boardToDelete}
+        onClose={() => setBoardToDelete(null)}
+        onConfirm={(id) => {
+          deleteBoard.mutate(id, {
+            onSuccess: () => setBoardToDelete(null),
+          });
+        }}
+        isDeleting={deleteBoard.isPending}
+      />
+    </>
+  );
 }
 
 function BoardCard({
-    board,
-    onDeleteClick,
+  board,
+  onDeleteClick,
 }: {
-    board: { id: string; title: string; _count: { columns: number } };
-    onDeleteClick: () => void;
+  board: BoardListItem;
+  onDeleteClick: () => void;
 }) {
-    const colorClass = getColorFromId(board.id);
+  const colorClass = getColorFromId(board.id);
+  const totalCards = board.columns.reduce((sum, c) => sum + c._count.cards, 0);
 
-    return (
-        <div className="group relative overflow-hidden rounded-lg border border-slate-200 bg-white transition hover:border-slate-300 hover:shadow-sm">
-            {/* Renk şeridi */}
-            <div className={`h-2 w-full ${colorClass}`} />
+  // En çok kart içeren column'a göre normalize et (görsel oran)
+  const maxCards = Math.max(...board.columns.map((c) => c._count.cards), 1);
 
-            <Link href={`/boards/${board.id}`} className="block p-5">
-                <h3 className="font-semibold text-slate-900">{board.title}</h3>
-                <p className="mt-1 text-sm text-slate-500">
-                    {board._count.columns} column{board._count.columns === 1 ? "" : "s"}
-                </p>
-            </Link>
+  return (
+    <div className="group relative overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-[0_1px_3px_rgba(15,23,42,0.04)] transition-all hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_8px_24px_-4px_rgba(15,23,42,0.08)]">
+      {/* Top edge highlight */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"
+      />
 
-            <button
-                type="button"
-                onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onDeleteClick();
-                }}
-                className="absolute right-3 top-5 rounded-md p-1.5 text-slate-400 opacity-0 transition hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
-                aria-label={`Delete board ${board.title}`}
-            >
-                <Trash2 className="h-4 w-4" />
-            </button>
+      {/* Color strip */}
+      <div className={`h-1.5 w-full ${colorClass}`} />
+
+      <Link href={`/boards/${board.id}`} className="block p-5">
+        {/* Title */}
+        <h3 className="text-base font-semibold tracking-tight text-slate-900 line-clamp-1">
+          {board.title}
+        </h3>
+
+        {/* Mini preview: column heights */}
+        <div className="mt-4 flex h-16 items-end gap-1.5">
+          {board.columns.length > 0 ? (
+            board.columns.map((col) => {
+              const heightPercent = Math.max(
+                (col._count.cards / maxCards) * 100,
+                8, // Min 8% → boş column'lar bile görünür
+              );
+              return (
+                <div
+                  key={col.id}
+                  className="group/col relative flex-1"
+                  title={`${col.title}: ${col._count.cards} card${col._count.cards === 1 ? "" : "s"}`}
+                >
+                  <div
+                    className="rounded-sm bg-gradient-to-t from-slate-200 to-slate-100 transition-colors group-hover:from-slate-300 group-hover:to-slate-200"
+                    style={{ height: `${heightPercent}%` }}
+                  />
+                </div>
+              );
+            })
+          ) : (
+            <div className="flex h-full w-full items-center justify-center rounded-md border border-dashed border-slate-200 text-[11px] text-slate-400">
+              Empty board
+            </div>
+          )}
         </div>
-    );
+
+        {/* Footer stats */}
+        <div className="mt-4 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-3 text-slate-500">
+            <span className="tabular-nums">
+              {board._count.columns} col{board._count.columns === 1 ? "" : "s"}
+            </span>
+            <span className="text-slate-300">·</span>
+            <span className="tabular-nums">
+              {totalCards} card{totalCards === 1 ? "" : "s"}
+            </span>
+          </div>
+          <span className="text-[10px] text-slate-400">
+            {formatRelativeTime(board.updatedAt)}
+          </span>
+        </div>
+      </Link>
+
+      {/* Delete button — hover'da görünür */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onDeleteClick();
+        }}
+        className="absolute right-3 top-5 rounded-md bg-white/90 p-1.5 text-slate-400 opacity-0 backdrop-blur-sm transition hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
+        aria-label={`Delete board ${board.title}`}
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
+/**
+ * Relative time helper: "2h ago", "1d ago", "Mar 15"
+ */
+function formatRelativeTime(dateString: string | Date): string {
+  const date = typeof dateString === "string" ? new Date(dateString) : dateString;
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMin = Math.floor(diffMs / (1000 * 60));
+  const diffHour = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDay = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMin < 1) return "Just now";
+  if (diffMin < 60) return `${diffMin}m ago`;
+  if (diffHour < 24) return `${diffHour}h ago`;
+  if (diffDay < 7) return `${diffDay}d ago`;
+
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 function EmptyState({ onCreate }: { onCreate: () => void }) {

@@ -15,3 +15,11 @@ export function useBoardQuery(boardId: string) {
         queryFn: () => apiFetch<BoardWithColumns>(`/api/boards/${boardId}`),
     });
 }
+export type BoardListItem = Board & {
+    _count: { columns: number };
+    columns: Array<{
+        id: string;
+        title: string;
+        _count: { cards: number };
+    }>;
+};

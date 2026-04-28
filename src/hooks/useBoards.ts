@@ -8,6 +8,11 @@ import type { Board } from "@/types";
 // Liste sayfası için: board + column count
 export type BoardListItem = Board & {
     _count: { columns: number };
+    columns: {
+        id: string;
+        title: string;
+        _count: { cards: number };
+    }[];
 };
 
 const BOARDS_KEY = ["boards"] as const;

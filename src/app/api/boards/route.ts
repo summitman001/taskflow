@@ -11,7 +11,6 @@ import { generateKeyBetween } from "fractional-indexing";
 export async function GET() {
     try {
         const user = await getOrCreateUser();
-
         const boards = await prisma.board.findMany({
             where: { ownerId: user.id },
             orderBy: { updatedAt: "desc" },
@@ -22,6 +21,17 @@ export async function GET() {
                 updatedAt: true,
                 _count: {
                     select: { columns: true },
+                },
+                columns: {
+                    orderBy: { position: "asc" },
+                    take: 4, // İlk 4 column yeter (preview için)
+                    select: {
+                        id: true,
+                        title: true,
+                        _count: {
+                            select: { cards: true },
+                        },
+                    },
                 },
             },
         });
