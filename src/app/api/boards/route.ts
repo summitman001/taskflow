@@ -6,17 +6,28 @@ import { generateKeyBetween } from "fractional-indexing";
 
 /**
  * GET /api/boards
- * Kullanıcının tüm board'larını döndür.
+ * Kullanıcının ERİŞEBİLDİĞİ tüm board'ları döndür (owner + member).
  */
 export async function GET() {
     try {
         const user = await getOrCreateUser();
+
         const boards = await prisma.board.findMany({
-            where: { ownerId: user.id },
+            where: {
+                OR: [
+                    { ownerId: user.id },              // Owner olduğu
+                    {
+                        members: {
+                            some: { userId: user.id }, // Member olduğu
+                        },
+                    },
+                ],
+            },
             orderBy: { updatedAt: "desc" },
             select: {
                 id: true,
                 title: true,
+                ownerId: true,  // ⭐ Frontend için owner check
                 createdAt: true,
                 updatedAt: true,
                 _count: {
@@ -24,12 +35,26 @@ export async function GET() {
                 },
                 columns: {
                     orderBy: { position: "asc" },
-                    take: 4, // İlk 4 column yeter (preview için)
+                    take: 4,
                     select: {
                         id: true,
                         title: true,
                         _count: {
                             select: { cards: true },
+                        },
+                    },
+                },
+                // ⭐ Member sayısını göster
+                members: {
+                    select: {
+                        id: true,
+                        role: true,
+                        user: {
+                            select: {
+                                id: true,
+                                email: true,
+                                name: true,
+                            },
                         },
                     },
                 },
@@ -45,7 +70,7 @@ export async function GET() {
 
 /**
  * POST /api/boards
- * Yeni board oluştur.
+ * Yeni board oluştur + owner'ı otomatik member yap.
  */
 export async function POST(req: NextRequest) {
     try {
@@ -70,9 +95,17 @@ export async function POST(req: NextRequest) {
                         { title: "Done", position: colPos3 },
                     ],
                 },
+                // ⭐ Owner'ı otomatik member yap
+                members: {
+                    create: {
+                        userId: user.id,
+                        role: "OWNER",
+                    },
+                },
             },
             include: {
                 columns: true,
+                members: true,
             },
         });
 

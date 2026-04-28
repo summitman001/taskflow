@@ -1,16 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getOrCreateUser } from "@/lib/auth";
+import { requireBoardAccess } from "@/lib/auth";
 import { apiError, validateTitle, validatePosition } from "@/lib/api";
 
 /**
  * POST /api/columns
- * Belirli bir board'a yeni column ekle.
- * Body: { boardId, title, position }
  */
 export async function POST(req: NextRequest) {
     try {
-        const user = await getOrCreateUser();
         const body = await req.json();
 
         if (typeof body.boardId !== "string") {
@@ -23,13 +20,8 @@ export async function POST(req: NextRequest) {
         const positionError = validatePosition(body.position);
         if (positionError) return apiError.badRequest(positionError);
 
-        // Board sahipliği kontrolü
-        const board = await prisma.board.findUnique({
-            where: { id: body.boardId },
-            select: { ownerId: true },
-        });
-        if (!board) return apiError.notFound("Board");
-        if (board.ownerId !== user.id) return apiError.forbidden();
+        // ⭐ EDITOR+ gerekli
+        await requireBoardAccess(body.boardId, "EDITOR");
 
         const column = await prisma.column.create({
             data: {
@@ -42,6 +34,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(column, { status: 201 });
     } catch (error) {
         console.error("[POST /api/columns]", error);
+
+        if (error instanceof Error) {
+            if (error.message === "Board access denied" || error.message === "Insufficient permissions") {
+                return apiError.forbidden();
+            }
+        }
+
         return apiError.serverError();
     }
 }

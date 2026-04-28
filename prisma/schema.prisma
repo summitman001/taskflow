@@ -8,37 +8,74 @@ datasource db {
 }
 
 model User {
-  id        String   @id // Clerk user ID kullanacağız (cuid değil)
+  id        String   @id // Clerk user ID
   email     String   @unique
   name      String?
-  boards    Board[]
+  
+  // Relations
+  boards    Board[]  @relation("BoardOwner")  // ⭐ Renamed relation
+  boardMembers BoardMember[]                  // ⭐ NEW
+  activities   CardActivity[]
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  activities  CardActivity[]
 }
 
 model Board {
   id        String   @id @default(cuid())
   title     String
+  
+  // Owner relation
   ownerId   String
-  owner     User     @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner     User     @relation("BoardOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  
+  // Relations
   columns   Column[]
+  members   BoardMember[]  // ⭐ NEW
+  
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
+  
   @@index([ownerId])
 }
 
+// ⭐ NEW TABLE
+model BoardMember {
+  id        String   @id @default(cuid())
+  role      Role     @default(EDITOR)
+  joinedAt  DateTime @default(now())
+  
+  // Foreign keys
+  userId    String
+  boardId   String
+  
+  // Relations
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, boardId])
+  @@index([boardId])
+  @@index([userId])
+}
+
+// ⭐ NEW ENUM
+enum Role {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+// Existing models stay the same
 model Column {
   id        String   @id @default(cuid())
   title     String
-  position  String   // fractional indexing (string-based lexorank)
+  position  String
   boardId   String
   board     Board    @relation(fields: [boardId], references: [id], onDelete: Cascade)
   cards     Card[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
+  
   @@index([boardId, position])
 }
 
@@ -46,15 +83,15 @@ model Card {
   id          String   @id @default(cuid())
   title       String
   description String?
-  position    String   // fractional indexing
-  priority    String?  // "low" | "medium" | "high" | null
+  position    String
+  priority    String?
   dueDate     DateTime?
   columnId    String
   column      Column   @relation(fields: [columnId], references: [id], onDelete: Cascade)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   activities  CardActivity[]
-
+  
   @@index([columnId, position])
 }
 
@@ -64,11 +101,9 @@ model CardActivity {
   card      Card     @relation(fields: [cardId], references: [id], onDelete: Cascade)
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  type      String   // "moved" | "created" | "edited"  (genişletilebilir)
-  metadata  Json?    // Move için: { fromColumn: { id, title }, toColumn: { id, title } }
-
+  type      String
+  metadata  Json?
   createdAt DateTime @default(now())
-
+  
   @@index([cardId, createdAt])
 }

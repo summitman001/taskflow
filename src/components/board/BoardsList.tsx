@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { LayoutGrid, Plus, Trash2, Sparkles } from "lucide-react";
+import { LayoutGrid, Plus, Trash2, Sparkles, Users } from "lucide-react";
 import {
   useBoardsQuery,
   useDeleteBoard,
@@ -148,6 +148,14 @@ function BoardCard({
         <h3 className="text-base font-semibold tracking-tight text-slate-900 line-clamp-1">
           {board.title}
         </h3>
+
+        {/* Members indicator */}
+        {board.members && board.members.length > 1 && (
+            <div className="mt-2 flex items-center gap-2 text-sm text-gray-600">
+                <Users className="h-4 w-4" />
+                <span>{board.members.length} members</span>
+            </div>
+        )}
 
         {/* Mini preview: column heights */}
         <div className="mt-4 flex h-16 items-end gap-1.5">

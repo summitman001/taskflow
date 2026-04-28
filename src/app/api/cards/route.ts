@@ -1,12 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getOrCreateUser } from "@/lib/auth";
+import { getOrCreateUser, requireBoardAccess } from "@/lib/auth";
 import { apiError, validateTitle, validatePosition } from "@/lib/api";
 
 /**
  * POST /api/cards
- * Belirli bir column'a yeni kart ekle.
- * Body: { columnId, title, position, description? }
  */
 export async function POST(req: NextRequest) {
     try {
@@ -31,14 +29,12 @@ export async function POST(req: NextRequest) {
             return apiError.badRequest("description must be a string");
         }
 
-        // Priority validation
         if (body.priority !== undefined && body.priority !== null) {
             if (!["low", "medium", "high"].includes(body.priority)) {
                 return apiError.badRequest("priority must be one of: low, medium, high");
             }
         }
 
-        // Due date validation
         if (body.dueDate !== undefined && body.dueDate !== null) {
             const parsed = new Date(body.dueDate);
             if (isNaN(parsed.getTime())) {
@@ -46,13 +42,16 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        // Column sahipliği kontrolü (board üzerinden)
+        // ⭐ Column'un board'unu bul ve access check
         const column = await prisma.column.findUnique({
             where: { id: body.columnId },
-            include: { board: { select: { ownerId: true } } },
+            select: { boardId: true },
         });
+
         if (!column) return apiError.notFound("Column");
-        if (column.board.ownerId !== user.id) return apiError.forbidden();
+
+        // ⭐ EDITOR+ gerekli
+        await requireBoardAccess(column.boardId, "EDITOR");
 
         const card = await prisma.card.create({
             data: {
@@ -68,6 +67,13 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(card, { status: 201 });
     } catch (error) {
         console.error("[POST /api/cards]", error);
+
+        if (error instanceof Error) {
+            if (error.message === "Board access denied" || error.message === "Insufficient permissions") {
+                return apiError.forbidden();
+            }
+        }
+
         return apiError.serverError();
     }
 }

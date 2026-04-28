@@ -1,41 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getOrCreateUser } from "@/lib/auth";
+import { getOrCreateUser, requireBoardAccess } from "@/lib/auth";
 import { apiError, validateTitle, validatePosition } from "@/lib/api";
 
 type RouteParams = { params: Promise<{ cardId: string }> };
 
 /**
- * Card sahipliği kontrolü — card → column → board → ownerId zinciri.
- */
-async function getCardIfOwner(cardId: string, userId: string) {
-    const card = await prisma.card.findUnique({
-        where: { id: cardId },
-        include: {
-            column: {
-                include: {
-                    board: { select: { ownerId: true } },
-                },
-            },
-        },
-    });
-
-    if (!card) return { error: "notFound" as const };
-    if (card.column.board.ownerId !== userId) {
-        return { error: "forbidden" as const };
-    }
-    return { card };
-}
-
-/**
  * PATCH /api/cards/[cardId]
- * Kartı düzenle veya taşı.
- *
- * Aynı endpoint iki işi yapar:
- * - Düzenleme: { title?, description? }
- * - Taşıma:    { columnId?, position? }
- *
- * Frontend bu sayede drag-drop için ayrı endpoint'e gerek duymaz.
  */
 export async function PATCH(req: NextRequest, { params }: RouteParams) {
     try {
@@ -43,9 +14,18 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         const { cardId } = await params;
         const body = await req.json();
 
-        const result = await getCardIfOwner(cardId, user.id);
-        if (result.error === "notFound") return apiError.notFound("Card");
-        if (result.error === "forbidden") return apiError.forbidden();
+        // Card ve board bilgisini çek
+        const card = await prisma.card.findUnique({
+            where: { id: cardId },
+            include: {
+                column: { select: { boardId: true, title: true } },
+            },
+        });
+
+        if (!card) return apiError.notFound("Card");
+
+        // ⭐ EDITOR+ gerekli
+        await requireBoardAccess(card.column.boardId, "EDITOR");
 
         const data: {
             title?: string;
@@ -108,13 +88,18 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
                 return apiError.badRequest("columnId must be a string");
             }
 
-            // Hedef column kullanıcıya ait mi kontrol et
+            // ⭐ Hedef column aynı board'da mı?
             const targetColumn = await prisma.column.findUnique({
                 where: { id: body.columnId },
-                include: { board: { select: { ownerId: true } } },
+                select: { boardId: true },
             });
+
             if (!targetColumn) return apiError.notFound("Target column");
-            if (targetColumn.board.ownerId !== user.id) return apiError.forbidden();
+
+            // Farklı board'a taşınmaya çalışılıyorsa
+            if (targetColumn.boardId !== card.column.boardId) {
+                return apiError.badRequest("Cannot move card to different board");
+            }
 
             data.columnId = body.columnId;
         }
@@ -123,37 +108,35 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
             return apiError.badRequest("No valid fields to update");
         }
 
-        // columnId değiştiriliyorsa, log için kaynak ve hedef column'ı al
-        const isMoving = data.columnId !== undefined && data.columnId !== result.card.columnId;
-
+        // Move activity için bilgi topla
+        const isMoving = data.columnId !== undefined && data.columnId !== card.columnId;
         let fromColumnInfo: { id: string; title: string } | null = null;
         let toColumnInfo: { id: string; title: string } | null = null;
 
         if (isMoving) {
             fromColumnInfo = {
-                id: result.card.columnId,
-                title: result.card.column.title,
+                id: card.columnId,
+                title: card.column.title,
             };
 
-            // Hedef column zaten yukarıda fetch edildi (targetColumn), ama
-            // burada yeniden almamız gerek (TypeScript scope için)
             const targetCol = await prisma.column.findUnique({
                 where: { id: data.columnId! },
                 select: { id: true, title: true },
             });
+
             if (targetCol) {
                 toColumnInfo = { id: targetCol.id, title: targetCol.title };
             }
         }
 
-        // Update + activity log atomik olarak
+        // Update + activity log
         const updated = await prisma.$transaction(async (tx) => {
-            const card = await tx.card.update({
+            const updatedCard = await tx.card.update({
                 where: { id: cardId },
                 data,
             });
 
-            // Eğer kart taşındıysa, activity log ekle
+            // ⭐ Move activity
             if (isMoving && fromColumnInfo && toColumnInfo) {
                 await tx.cardActivity.create({
                     data: {
@@ -168,12 +151,55 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
                 });
             }
 
-            return card;
+            // ⭐ YENİ: Edit activity (title, description, priority, dueDate değiştiyse)
+            const hasEdits = 
+                data.title !== undefined || 
+                data.description !== undefined || 
+                data.priority !== undefined || 
+                data.dueDate !== undefined;
+
+            if (hasEdits && !isMoving) { // Move zaten ayrı log olarak ekleniyor
+                const changes: Record<string, any> = {};
+                
+                if (data.title !== undefined && data.title !== card.title) {
+                    changes.title = { from: card.title, to: data.title };
+                }
+                if (data.description !== undefined) {
+                    changes.description = { changed: true };
+                }
+                if (data.priority !== undefined) {
+                    changes.priority = { to: data.priority };
+                }
+                if (data.dueDate !== undefined) {
+                    changes.dueDate = { to: data.dueDate };
+                }
+
+                // Sadece gerçekten değişiklik varsa log ekle
+                if (Object.keys(changes).length > 0) {
+                    await tx.cardActivity.create({
+                        data: {
+                            cardId: cardId,
+                            userId: user.id,
+                            type: "edited",
+                            metadata: changes,
+                        },
+                    });
+                }
+            }
+
+            return updatedCard;
         });
 
         return NextResponse.json(updated);
     } catch (error) {
         console.error("[PATCH /api/cards/:cardId]", error);
+
+        if (error instanceof Error) {
+            if (error.message === "Board access denied" || error.message === "Insufficient permissions") {
+                return apiError.forbidden();
+            }
+        }
+
         return apiError.serverError();
     }
 }
@@ -183,18 +209,30 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
  */
 export async function DELETE(_req: NextRequest, { params }: RouteParams) {
     try {
-        const user = await getOrCreateUser();
         const { cardId } = await params;
 
-        const result = await getCardIfOwner(cardId, user.id);
-        if (result.error === "notFound") return apiError.notFound("Card");
-        if (result.error === "forbidden") return apiError.forbidden();
+        const card = await prisma.card.findUnique({
+            where: { id: cardId },
+            include: { column: { select: { boardId: true } } },
+        });
+
+        if (!card) return apiError.notFound("Card");
+
+        // ⭐ EDITOR+ gerekli
+        await requireBoardAccess(card.column.boardId, "EDITOR");
 
         await prisma.card.delete({ where: { id: cardId } });
 
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error("[DELETE /api/cards/:cardId]", error);
+
+        if (error instanceof Error) {
+            if (error.message === "Board access denied" || error.message === "Insufficient permissions") {
+                return apiError.forbidden();
+            }
+        }
+
         return apiError.serverError();
     }
 }

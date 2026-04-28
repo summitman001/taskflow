@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { prisma } from "@/lib/prisma";
-import { getOrCreateUser } from "@/lib/auth";
+import { getOrCreateUser, requireBoardAccess } from "@/lib/auth";
 import { apiError } from "@/lib/api";
 
 /**
@@ -47,20 +47,23 @@ export async function POST(req: NextRequest) {
             return apiError.badRequest("cardId is required");
         }
 
-        // Sahiplik kontrolü + kart datası
+        // Card + board bilgisi
         const card = await prisma.card.findUnique({
             where: { id: body.cardId },
             include: {
                 column: {
-                    include: {
-                        board: { select: { ownerId: true } },
-                    },
+                    select: { 
+                        boardId: true,
+                        board: { select: { id: true } }
+                    }
                 },
             },
         });
 
         if (!card) return apiError.notFound("Card");
-        if (card.column.board.ownerId !== user.id) return apiError.forbidden();
+
+        // ⭐ Access check (EDITOR gerekli)
+        await requireBoardAccess(card.column.boardId, "EDITOR");
 
         // API key kontrolü (graceful degradation)
         if (!process.env.OPENAI_API_KEY) {
@@ -114,6 +117,13 @@ Break this into 3-5 subtasks.`;
         return NextResponse.json({ subtasks, isMock: false });
     } catch (error) {
         console.error("[POST /api/ai/breakdown]", error);
+
+        // ⭐ Access denied error handle
+        if (error instanceof Error) {
+            if (error.message === "Board access denied" || error.message === "Insufficient permissions") {
+                return apiError.forbidden();
+            }
+        }
 
         // OpenAI özel hataları
         if (error instanceof OpenAI.APIError) {

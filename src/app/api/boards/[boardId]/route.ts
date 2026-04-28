@@ -1,23 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getOrCreateUser } from "@/lib/auth";
+import { getOrCreateUser, requireBoardAccess } from "@/lib/auth";
 import { apiError, validateTitle } from "@/lib/api";
 
 type RouteParams = { params: Promise<{ boardId: string }> };
 
 /**
  * GET /api/boards/[boardId]
- * Board'u column ve kartlarıyla birlikte döndür (eager load).
- * Bu endpoint kanban view'ın ana veri kaynağı.
+ * ⭐ Artık member olan herkes erişebilir (viewer+)
  */
 export async function GET(_req: NextRequest, { params }: RouteParams) {
     try {
-        const user = await getOrCreateUser();
         const { boardId } = await params;
+        
+        // ⭐ Access check (VIEWER yeterli)
+        await requireBoardAccess(boardId, "VIEWER");
 
         const board = await prisma.board.findUnique({
             where: { id: boardId },
             include: {
+                owner: {
+                    select: { id: true, email: true, name: true },
+                },
+                members: {
+                    include: {
+                        user: {
+                            select: { id: true, email: true, name: true },
+                        },
+                    },
+                    orderBy: { joinedAt: "asc" },
+                },
                 columns: {
                     orderBy: { position: "asc" },
                     include: {
@@ -30,35 +42,31 @@ export async function GET(_req: NextRequest, { params }: RouteParams) {
         });
 
         if (!board) return apiError.notFound("Board");
-        if (board.ownerId !== user.id) return apiError.forbidden();
 
         return NextResponse.json(board);
     } catch (error) {
         console.error("[GET /api/boards/:boardId]", error);
+        if (error instanceof Error && error.message === "Board access denied") {
+            return apiError.forbidden();
+        }
         return apiError.serverError();
     }
 }
 
 /**
  * PATCH /api/boards/[boardId]
- * Board başlığını güncelle.
+ * ⭐ EDITOR+ gerekli
  */
 export async function PATCH(req: NextRequest, { params }: RouteParams) {
     try {
-        const user = await getOrCreateUser();
         const { boardId } = await params;
         const body = await req.json();
 
         const titleError = validateTitle(body.title);
         if (titleError) return apiError.badRequest(titleError);
 
-        // Sahiplik kontrolü
-        const existing = await prisma.board.findUnique({
-            where: { id: boardId },
-            select: { ownerId: true },
-        });
-        if (!existing) return apiError.notFound("Board");
-        if (existing.ownerId !== user.id) return apiError.forbidden();
+        // ⭐ EDITOR access required
+        await requireBoardAccess(boardId, "EDITOR");
 
         const updated = await prisma.board.update({
             where: { id: boardId },
@@ -68,31 +76,35 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
         return NextResponse.json(updated);
     } catch (error) {
         console.error("[PATCH /api/boards/:boardId]", error);
+        if (error instanceof Error && error.message === "Board access denied") {
+            return apiError.forbidden();
+        }
         return apiError.serverError();
     }
 }
 
 /**
  * DELETE /api/boards/[boardId]
- * Board'u sil (cascade ile column ve kartlar da gider).
+ * ⭐ Sadece OWNER silebilir
  */
 export async function DELETE(_req: NextRequest, { params }: RouteParams) {
     try {
-        const user = await getOrCreateUser();
         const { boardId } = await params;
 
-        const existing = await prisma.board.findUnique({
-            where: { id: boardId },
-            select: { ownerId: true },
-        });
-        if (!existing) return apiError.notFound("Board");
-        if (existing.ownerId !== user.id) return apiError.forbidden();
+        // ⭐ OWNER required
+        const role = await requireBoardAccess(boardId, "OWNER");
+        if (role !== "OWNER") {
+            return apiError.forbidden("Only owner can delete board");
+        }
 
         await prisma.board.delete({ where: { id: boardId } });
 
         return NextResponse.json({ success: true });
     } catch (error) {
         console.error("[DELETE /api/boards/:boardId]", error);
+        if (error instanceof Error && error.message === "Board access denied") {
+            return apiError.forbidden();
+        }
         return apiError.serverError();
     }
 }

@@ -27,7 +27,8 @@ import { ColumnOverlay } from "./ColumnOverlay";
 import { ThemePicker } from "./ThemePicker";
 import { OnboardingBanner } from "./OnboardingBanner";
 import { KeyboardShortcutsButton } from "./KeyboardShortcutsButton";
-import type { BoardWithColumns, DragData } from "@/types";
+import { ShareButton } from "./ShareButton";
+import type { BoardFull, DragData } from "@/types";
 
 interface Props {
     boardId: string;
@@ -61,7 +62,7 @@ function BoardContent({
     board,
     boardId,
 }: {
-    board: BoardWithColumns;
+    board: BoardFull;
     boardId: string;
 }) {
     const qc = useQueryClient();
@@ -166,7 +167,7 @@ function BoardContent({
         if (activeData.columnId === overColumnId) return;
 
         // Kartı yeni column'a "preview" olarak taşı
-        qc.setQueryData<BoardWithColumns>(boardKey(boardId), (old) => {
+        qc.setQueryData<BoardFull>(boardKey(boardId), (old) => {
             if (!old) return old;
             return previewCardMove(old, active.id as string, overColumnId);
         });
@@ -182,7 +183,7 @@ function BoardContent({
         const overData = over.data.current as DragData | undefined;
         if (!activeData || !overData) return;
 
-        const currentBoard = qc.getQueryData<BoardWithColumns>(boardKey(boardId));
+        const currentBoard = qc.getQueryData<BoardFull>(boardKey(boardId));
         if (!currentBoard) return;
 
         /* ----- Column reorder ----- */
@@ -309,8 +310,11 @@ function BoardContent({
                         </p>
                     </div>
 
-                    {/* 🆕 Theme picker */}
-                    <ThemePicker currentThemeId={theme.id} onChange={setTheme} />
+                    {/* 🆕 Actions */}
+                    <div className="flex items-center gap-3">
+                        <ShareButton board={board} />
+                        <ThemePicker currentThemeId={theme.id} onChange={setTheme} />
+                    </div>
                 </div>
             </div>
 
@@ -340,11 +344,11 @@ function BoardContent({
 /* ----- Preview transform (handleDragOver için) ----- */
 
 function previewCardMove(
-    board: BoardWithColumns,
+    board: BoardFull,
     cardId: string,
     toColumnId: string,
-): BoardWithColumns {
-    let movedCard: BoardWithColumns["columns"][0]["cards"][0] | undefined;
+): BoardFull {
+    let movedCard: BoardFull["columns"][0]["cards"][0] | undefined;
     const columnsWithoutCard = board.columns.map((col) => {
         const found = col.cards.find((c) => c.id === cardId);
         if (found) movedCard = found;

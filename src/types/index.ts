@@ -1,9 +1,9 @@
-import type { Board, Column, Card, User } from "@prisma/client";
+import type { Board, Column, Card, User, BoardMember, Role } from "@prisma/client";
 
-// Prisma'nın temel tipleri
-export type { Board, Column, Card, User };
+// Prisma types
+export type { Board, Column, Card, User, BoardMember, Role };
 
-// API'den gelen "tam board" tipi (column ve kartlarla birlikte)
+// Board with columns and cards
 export type BoardWithColumns = Board & {
     columns: ColumnWithCards[];
 };
@@ -12,7 +12,24 @@ export type ColumnWithCards = Column & {
     cards: Card[];
 };
 
-// Drag-drop için ek tipler
+// ⭐ NEW: Board with members (for lists)
+export type BoardWithMembers = Board & {
+    members: (BoardMember & {
+        user: Pick<User, "id" | "email" | "name">;
+    })[];
+    _count: { columns: number };
+};
+
+// ⭐ NEW: Full board with everything
+export type BoardFull = Board & {
+    owner: Pick<User, "id" | "email" | "name">;
+    members: (BoardMember & {
+        user: Pick<User, "id" | "email" | "name">;
+    })[];
+    columns: ColumnWithCards[];
+};
+
+// Drag-drop (unchanged)
 export type DragData =
     | { type: "card"; card: Card; columnId: string }
     | { type: "column"; column: Column };
