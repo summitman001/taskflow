@@ -180,6 +180,7 @@ Three distinct permission levels:
 ## 🏗️ Architecture
 
 ### System Design
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                         CLIENT LAYER                         │
 │  ┌─────────────┐  ┌──────────────┐  ┌──────────────────┐   │
@@ -271,6 +272,7 @@ Role ENUM: OWNER | EDITOR | VIEWER
 ```
 
 ### API Structure
+```text
 /api
 ├── /boards
 │   ├── GET     - List user's accessible boards (owned + member)
