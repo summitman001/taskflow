@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Activity, ChevronDown, Trash2, Calendar, X } from "lucide-react";
 import { CardActivityList } from "./CardActivityList";
+import { AIBreakdownPanel } from "./AIBreakdownPanel";
 import {
     Dialog,
     DialogContent,
@@ -35,6 +36,11 @@ export function CardEditDialog({ boardId, board }: Props) {
         board.columns
             .flatMap((c) => c.cards)
             .find((c) => c.id === editingCardId);
+
+    // Kartın bulunduğu column (subtask eklemek için)
+    const cardColumn = card
+        ? board.columns.find((col) => col.cards.some((c) => c.id === card.id))
+        : null;
 
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
@@ -130,6 +136,16 @@ export function CardEditDialog({ boardId, board }: Props) {
                             disabled={updateCard.isPending}
                         />
                     </div>
+
+                    {/* AI Breakdown */}
+                    {card && cardColumn && (
+                        <AIBreakdownPanel
+                            cardId={card.id}
+                            columnId={cardColumn.id}
+                            columnCards={cardColumn.cards}
+                            boardId={boardId}
+                        />
+                    )}
 
                     {/* Priority + Due Date */}
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
