@@ -705,35 +705,9 @@ This project is open source and available under the [MIT License](LICENSE).
 
 ## 📧 Contact
 
-**Developer:** Enes A.  
+**Developer:** Enes Altunbaş  
 **GitHub:** [@summitman001](https://github.com/summitman001)  
-**Email:** [Your Email]  
-**LinkedIn:** [Your LinkedIn]  
+**Email:** [enesaltunbas12@gmail.com]  
+**LinkedIn:** [https://www.linkedin.com/in/enesaltunbas34/]  
 
 ---
-
-**⭐ If you found this project interesting, please consider giving it a star on GitHub!**
-
----
-
-## 📸 Screenshots
-
-### Dashboard
-![Dashboard](./docs/screenshots/dashboard.png)
-*Board overview with stats and quick actions*
-
-### Kanban Board
-![Kanban Board](./docs/screenshots/kanban.png)
-*Drag-and-drop interface with columns and cards*
-
-### Collaboration
-![Share Dialog](./docs/screenshots/share.png)
-*Multi-user sharing with role management*
-
-### AI Subtasks
-![AI Breakdown](./docs/screenshots/ai-subtasks.png)
-*AI-powered task breakdown in action*
-
----
-
-**Built with ❤️ and ☕ by Enes A.**
