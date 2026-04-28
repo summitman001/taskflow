@@ -693,15 +693,6 @@ This project is open source and available under the [MIT License](LICENSE).
 
 ---
 
-## 🙏 Acknowledgments
-
-- **Next.js Team** - Amazing framework and documentation
-- **Prisma Team** - Best-in-class ORM
-- **Clerk** - Seamless authentication
-- **Vercel** - Stellar deployment platform
-- **OpenAI** - Powerful AI capabilities
-
----
 
 ## 📧 Contact
 
