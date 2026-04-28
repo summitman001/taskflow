@@ -165,6 +165,112 @@ export async function POST() {
             },
         });
 
+        // Bazı kartlar için sahte aktivite geçmişi oluştur — değerlendirici timeline'ı hemen görsün
+        const allColumns = board.columns;
+        const backlogCol = allColumns[0];
+        const progressCol = allColumns[1];
+        const reviewCol = allColumns[2];
+        const doneCol = allColumns[3];
+
+        // Bazı kartların ID'sini al
+        const allCards = await prisma.card.findMany({
+            where: { columnId: { in: allColumns.map((c) => c.id) } },
+            select: { id: true, title: true, columnId: true },
+        });
+
+        // Helper: belirli bir başlığa sahip kartı bul
+        const findCard = (title: string) => allCards.find((c) => c.title === title);
+
+        const authCard = findCard("Implement user authentication");
+        const reviewCard = findCard("Code review: payment module");
+        const doneCard1 = findCard("Setup monitoring (Sentry)");
+        const doneCard2 = findCard("Database migration v2");
+
+        // Bu kartlar için "Backlog'dan geldi" → "...In Progress'e geldi" geçmişi yarat
+        const activitiesToCreate = [];
+
+        if (authCard) {
+            activitiesToCreate.push({
+                cardId: authCard.id,
+                userId: user.id,
+                type: "moved",
+                metadata: {
+                    fromColumn: { id: backlogCol.id, title: "Backlog" },
+                    toColumn: { id: progressCol.id, title: "In Progress" },
+                },
+                createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000), // 3 gün önce
+            });
+        }
+
+        if (reviewCard) {
+            activitiesToCreate.push(
+                {
+                    cardId: reviewCard.id,
+                    userId: user.id,
+                    type: "moved",
+                    metadata: {
+                        fromColumn: { id: backlogCol.id, title: "Backlog" },
+                        toColumn: { id: progressCol.id, title: "In Progress" },
+                    },
+                    createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
+                },
+                {
+                    cardId: reviewCard.id,
+                    userId: user.id,
+                    type: "moved",
+                    metadata: {
+                        fromColumn: { id: progressCol.id, title: "In Progress" },
+                        toColumn: { id: reviewCol.id, title: "Review" },
+                    },
+                    createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // dün
+                },
+            );
+        }
+
+        if (doneCard1) {
+            activitiesToCreate.push(
+                {
+                    cardId: doneCard1.id,
+                    userId: user.id,
+                    type: "moved",
+                    metadata: {
+                        fromColumn: { id: backlogCol.id, title: "Backlog" },
+                        toColumn: { id: progressCol.id, title: "In Progress" },
+                    },
+                    createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+                },
+                {
+                    cardId: doneCard1.id,
+                    userId: user.id,
+                    type: "moved",
+                    metadata: {
+                        fromColumn: { id: progressCol.id, title: "In Progress" },
+                        toColumn: { id: doneCol.id, title: "Done" },
+                    },
+                    createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+                },
+            );
+        }
+
+        if (doneCard2) {
+            activitiesToCreate.push({
+                cardId: doneCard2.id,
+                userId: user.id,
+                type: "moved",
+                metadata: {
+                    fromColumn: { id: progressCol.id, title: "In Progress" },
+                    toColumn: { id: doneCol.id, title: "Done" },
+                },
+                createdAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000),
+            });
+        }
+
+        if (activitiesToCreate.length > 0) {
+            await prisma.cardActivity.createMany({
+                data: activitiesToCreate,
+            });
+        }
+
         return NextResponse.json(board, { status: 201 });
     } catch (error) {
         console.error("[POST /api/boards/sample]", error);

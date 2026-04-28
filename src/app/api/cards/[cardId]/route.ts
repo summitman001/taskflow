@@ -123,9 +123,52 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
             return apiError.badRequest("No valid fields to update");
         }
 
-        const updated = await prisma.card.update({
-            where: { id: cardId },
-            data,
+        // columnId değiştiriliyorsa, log için kaynak ve hedef column'ı al
+        const isMoving = data.columnId !== undefined && data.columnId !== result.card.columnId;
+
+        let fromColumnInfo: { id: string; title: string } | null = null;
+        let toColumnInfo: { id: string; title: string } | null = null;
+
+        if (isMoving) {
+            fromColumnInfo = {
+                id: result.card.columnId,
+                title: result.card.column.title,
+            };
+
+            // Hedef column zaten yukarıda fetch edildi (targetColumn), ama
+            // burada yeniden almamız gerek (TypeScript scope için)
+            const targetCol = await prisma.column.findUnique({
+                where: { id: data.columnId! },
+                select: { id: true, title: true },
+            });
+            if (targetCol) {
+                toColumnInfo = { id: targetCol.id, title: targetCol.title };
+            }
+        }
+
+        // Update + activity log atomik olarak
+        const updated = await prisma.$transaction(async (tx) => {
+            const card = await tx.card.update({
+                where: { id: cardId },
+                data,
+            });
+
+            // Eğer kart taşındıysa, activity log ekle
+            if (isMoving && fromColumnInfo && toColumnInfo) {
+                await tx.cardActivity.create({
+                    data: {
+                        cardId: cardId,
+                        userId: user.id,
+                        type: "moved",
+                        metadata: {
+                            fromColumn: fromColumnInfo,
+                            toColumn: toColumnInfo,
+                        },
+                    },
+                });
+            }
+
+            return card;
         });
 
         return NextResponse.json(updated);

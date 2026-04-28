@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Trash2, Calendar, X } from "lucide-react";
+import { Activity, ChevronDown, Trash2, Calendar, X } from "lucide-react";
+import { CardActivityList } from "./CardActivityList";
 import {
     Dialog,
     DialogContent,
+    DialogDescription,
     DialogFooter,
     DialogHeader,
     DialogTitle,
@@ -98,6 +100,9 @@ export function CardEditDialog({ boardId, board }: Props) {
             <DialogContent className="sm:max-w-lg">
                 <DialogHeader>
                     <DialogTitle>Edit card</DialogTitle>
+                    <DialogDescription>
+                        Update the card details, set priority, or add a due date.
+                    </DialogDescription>
                 </DialogHeader>
 
                 <div className="space-y-4 py-2">
@@ -142,8 +147,8 @@ export function CardEditDialog({ boardId, board }: Props) {
                                                 onClick={() => setPriority(isSelected ? null : p.id)}
                                                 disabled={updateCard.isPending}
                                                 className={`flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-medium transition ${isSelected
-                                                        ? p.buttonClassName
-                                                        : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                                                    ? p.buttonClassName
+                                                    : "border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50"
                                                     }`}
                                             >
                                                 <Icon className="h-3 w-3" />
@@ -190,6 +195,22 @@ export function CardEditDialog({ boardId, board }: Props) {
                         </div>
                     </div>
                 </div>
+
+                {/* Activity Section */}
+                {card && (
+                    <div className="border-t border-slate-200 pt-4 pb-2">
+                        <details className="group">
+                            <summary className="flex cursor-pointer items-center gap-2 list-none text-sm font-medium text-slate-700 hover:text-slate-900">
+                                <Activity className="h-4 w-4 text-slate-500" />
+                                <span>Activity</span>
+                                <ChevronDown className="h-4 w-4 text-slate-400 transition-transform group-open:rotate-180 ml-auto" />
+                            </summary>
+                            <div className="mt-3">
+                                <CardActivityList cardId={card.id} />
+                            </div>
+                        </details>
+                    </div>
+                )}
 
                 <DialogFooter className="flex flex-row items-center justify-between gap-2 sm:justify-between">
                     <Button
