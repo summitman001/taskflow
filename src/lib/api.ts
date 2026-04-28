@@ -10,8 +10,8 @@ export const apiError = {
     notFound: (resource = "Resource") =>
         NextResponse.json({ error: `${resource} not found` }, { status: 404 }),
 
-    forbidden: () =>
-        NextResponse.json({ error: "Forbidden" }, { status: 403 }),
+    forbidden: (message = "Forbidden") =>
+        NextResponse.json({ error: message }, { status: 403 }),
 
     badRequest: (message: string) =>
         NextResponse.json({ error: message }, { status: 400 }),

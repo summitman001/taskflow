@@ -13,6 +13,15 @@ export type BoardListItem = Board & {
         title: string;
         _count: { cards: number };
     }[];
+    members: {
+        id: string;
+        role: string;
+        user: {
+            id: string;
+            email: string;
+            name: string | null;
+        };
+    }[];
 };
 
 const BOARDS_KEY = ["boards"] as const;
