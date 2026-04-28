@@ -15,7 +15,14 @@ export function LandingFooter() {
                     <div className="flex flex-col items-center gap-1 text-xs text-slate-500 md:flex-row md:gap-4">
                         <span>Built with Next.js, Prisma, and OpenAI.</span>
                         <span className="hidden md:inline">·</span>
-                        <span>Open source on GitHub.</span>
+                        <a 
+                            href="https://github.com/summitman001/taskflow" 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="hover:text-slate-800 transition-colors"
+                        >
+                            Open source on GitHub.
+                        </a>
                     </div>
 
                     <div className="flex items-center gap-3 text-xs">
