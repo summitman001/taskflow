@@ -8,12 +8,7 @@ import { Button } from "@/components/ui/button";
 export function LandingHero() {
     return (
         <section className="relative overflow-hidden">
-            {/* Subtle gradient background */}
-            <div className="absolute inset-0 -z-10">
-                <div className="absolute inset-x-0 top-0 h-[500px] bg-gradient-to-b from-violet-50 via-white to-white" />
-                <div className="absolute left-1/2 top-32 h-72 w-72 -translate-x-1/2 rounded-full bg-violet-200/30 blur-3xl" />
-                <div className="absolute right-1/4 top-16 h-72 w-72 rounded-full bg-fuchsia-200/20 blur-3xl" />
-            </div>
+
 
             <div className="mx-auto max-w-4xl px-6 py-20 text-center md:py-28">
                 {/* Badge */}

@@ -37,7 +37,7 @@ export function AIBox() {
                 {/* Mock chat / output */}
                 <div className="flex-1 space-y-2">
                     {/* User input bubble */}
-                    <div className="rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                    <div className="rounded-lg border border-slate-200/80 bg-white p-3 shadow-[0_1px_3px_rgba(15,23,42,0.04)]">
                         <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">
                             Your card
                         </p>
@@ -58,7 +58,7 @@ export function AIBox() {
                     </div>
 
                     {/* AI suggestions */}
-                    <div className="rounded-lg border border-violet-200 bg-gradient-to-br from-white to-violet-50/30 p-3 shadow-sm">
+                    <div className="rounded-lg border border-violet-200/80 bg-gradient-to-br from-white to-violet-50/30 p-3 shadow-[0_1px_3px_rgba(124,58,237,0.06)]">
                         <p className="mb-2 flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-violet-600">
                             <Sparkles className="h-2.5 w-2.5" />
                             AI Suggestions

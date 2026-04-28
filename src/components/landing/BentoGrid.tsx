@@ -10,7 +10,7 @@ import { ActivityBox } from "./boxes/ActivityBox";
 
 export function BentoGrid() {
     return (
-        <section className="mx-auto max-w-6xl px-6 py-16">
+        <section className="relative mx-auto max-w-6xl px-6 py-16">
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
@@ -74,9 +74,22 @@ function BentoCell({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-50px" }}
             transition={{ duration: 0.5, delay }}
-            className={`group relative overflow-hidden rounded-2xl border border-slate-200 bg-white transition-all hover:border-slate-300 hover:shadow-lg ${className}`}
+            className={`group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white/80 shadow-[0_1px_3px_rgba(15,23,42,0.04),0_1px_2px_rgba(15,23,42,0.03)] backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-[0_8px_24px_-4px_rgba(124,58,237,0.08),0_4px_12px_-2px_rgba(15,23,42,0.06)] ${className}`}
         >
-            {children}
+            {/* Inner highlight — top edge'de ince beyaz çizgi */}
+            <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-slate-200 to-transparent"
+            />
+
+            {/* Subtle inner ring — premium hissi */}
+            <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/50"
+            />
+
+            {/* Content */}
+            <div className="relative">{children}</div>
         </motion.div>
     );
 }
